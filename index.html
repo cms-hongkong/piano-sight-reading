@@ -1,1134 +1,1245 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>音符大作戰：城堡守衛戰 - Note Defense</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Custom Font and Touch Prevention */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-            background-color: #0d1117;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>音符大作戰：城堡守衛戰 (Note Defense)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b0f19;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* Responsive Piano Styling */
-        .piano-container {
-            display: flex;
-            position: relative;
-            height: 100%;
-            width: 100%;
-            justify-content: center;
-        }
+    /* 頂部狀態欄 */
+    #header {
+      height: 56px;
+      background: rgba(18, 24, 38, 0.95);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 2px solid #1e293b;
+      z-index: 10;
+    }
+    .header-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .icon-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: #334155;
+    }
+    .hearts {
+      display: flex;
+      gap: 4px;
+      font-size: 20px;
+    }
+    .heart {
+      color: #ef4444;
+      filter: drop-shadow(0 0 4px rgba(239,68,68,0.5));
+    }
+    .heart.empty {
+      color: #475569;
+      filter: none;
+    }
 
-        .white-key {
-            flex: 1;
-            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
-            border: 1px solid #999;
-            border-bottom-left-radius: 6px;
-            border-bottom-right-radius: 6px;
-            position: relative;
-            cursor: pointer;
-            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.2);
-            transition: background 0.05s ease, transform 0.05s ease;
-            z-index: 1;
-        }
+    /* 關卡資訊與模式 */
+    .mode-badge {
+      background: #f59e0b;
+      color: #000;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+      white-space: nowrap;
+    }
+    .mode-info {
+      font-size: 13px;
+      font-weight: bold;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
 
-        .white-key.active, .white-key:active {
-            background: linear-gradient(to bottom, #e0e0e0 0%, #cbd5e1 100%);
-            transform: translateY(2px);
-            box-shadow: inset 0 -2px 5px rgba(0,0,0,0.2);
-        }
+    /* 右側得分 */
+    .score-box {
+      text-align: right;
+      line-height: 1.1;
+    }
+    .score-title {
+      font-size: 10px;
+      color: #94a3b8;
+      letter-spacing: 1px;
+    }
+    .score-val {
+      font-size: 18px;
+      font-weight: 900;
+      color: #f59e0b;
+    }
+    .combo-val {
+      font-size: 16px;
+      font-weight: 900;
+      color: #10b981;
+    }
 
-        .black-key {
-            position: absolute;
-            height: 60%;
-            background: linear-gradient(to bottom, #2d3748 0%, #000000 100%);
-            border-bottom-left-radius: 4px;
-            border-bottom-right-radius: 4px;
-            cursor: pointer;
-            z-index: 2;
-            box-shadow: inset 0 -3px 6px rgba(255,255,255,0.2), 2px 3px 5px rgba(0,0,0,0.5);
-            transition: background 0.05s ease, transform 0.05s ease;
-        }
+    /* 遊戲 Canvas 區域 */
+    #game-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      background: linear-gradient(to bottom, #090d16 0%, #111827 70%, #1e1b4b 100%);
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
 
-        .black-key.active, .black-key:active {
-            background: linear-gradient(to bottom, #1a202c 0%, #3182ce 100%);
-            transform: translateY(2px);
-        }
+    /* 琴鍵控制列 */
+    #controls-bar {
+      background: #0f172a;
+      border-top: 2px solid #eab308;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+      z-index: 10;
+    }
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    select {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
 
-        /* Prevent scroll pull down on iOS */
-        html, body {
-            position: fixed;
-            overflow: hidden;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+    /* 鋼琴鍵盤區域 */
+    #piano-container {
+      height: 170px;
+      background: #000;
+      position: relative;
+      width: 100%;
+      display: flex;
+      user-select: none;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+    }
+    .white-key {
+      flex: 1;
+      background: linear-gradient(to bottom, #f8fafc 0%, #e2e8f0 100%);
+      border: 1px solid #94a3b8;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 8px;
+      box-shadow: inset 0 -5px 10px rgba(0,0,0,0.15);
+      z-index: 1;
+    }
+    .white-key.active {
+      background: linear-gradient(to bottom, #cbd5e1 0%, #38bdf8 100%);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.4);
+      transform: translateY(2px);
+    }
+    .black-key {
+      position: absolute;
+      width: 7%;
+      height: 60%;
+      background: linear-gradient(to bottom, #334155 0%, #0f172a 100%);
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: 2px 3px 6px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 6px;
+    }
+    .black-key.active {
+      background: linear-gradient(to bottom, #0f172a 0%, #0284c7 100%);
+      height: 58%;
+    }
+    .key-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #475569;
+      pointer-events: none;
+    }
+    .black-key .key-label {
+      color: #94a3b8;
+      font-size: 9px;
+    }
+
+    /* Modal 彈窗樣式 */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      color: #f8fafc;
+      animation: popIn 0.25s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-title {
+      font-size: 22px;
+      font-weight: 900;
+      text-align: center;
+      color: #60a5fa;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    .form-control {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: #3b82f6;
+    }
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      transition: all 0.2s;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn-secondary {
+      background: #334155;
+      box-shadow: none;
+      margin-top: 8px;
+    }
+
+    /* 排行榜列表 */
+    .leaderboard-list {
+      list-style: none;
+      margin: 12px 0;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #0f172a;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .leaderboard-rank {
+      font-weight: 900;
+      width: 24px;
+      color: #f59e0b;
+    }
+    .leaderboard-name {
+      flex: 1;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+    .leaderboard-score {
+      font-weight: 900;
+      color: #10b981;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-white flex flex-col h-screen select-none">
+<body>
 
-    <!-- Top Header Bar -->
-    <header class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-3 md:px-6 z-20">
-        <!-- Left: Pause & Settings & HP -->
-        <div class="flex items-center space-x-2 md:space-x-4">
-            <button id="btn-pause" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-amber-400 font-bold transition">
-                <i class="fa-solid fa-pause"></i>
-            </button>
-            <button id="btn-settings" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 transition">
-                <i class="fa-solid fa-gear"></i>
-            </button>
-            <!-- Heart Bar -->
-            <div id="hp-bar" class="flex space-x-1 text-red-500 text-lg md:text-xl">
-                <i class="fa-solid fa-heart"></i>
-                <i class="fa-solid fa-heart"></i>
-                <i class="fa-solid fa-heart"></i>
-                <i class="fa-solid fa-heart"></i>
-                <i class="fa-solid fa-heart"></i>
-            </div>
-        </div>
-
-        <!-- Center: Clef & Mode Indicator -->
-        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center space-x-2 text-xs md:text-sm">
-            <span id="clef-badge" class="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-xs">🎼 高音譜號</span>
-            <span id="range-badge" class="text-amber-300 font-semibold">C4 - C5 (單八度)</span>
-        </div>
-
-        <!-- Right: MIDI Status & Score / Combo -->
-        <div class="flex items-center space-x-3 md:space-x-6">
-            <div id="midi-status" class="hidden sm:flex items-center space-x-1 text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 border border-slate-700">
-                <i class="fa-plug-circle-xmark text-amber-500"></i>
-                <span id="midi-text">MIDI 未連線</span>
-            </div>
-
-            <div class="flex items-center space-x-3 text-right">
-                <div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">SCORE</div>
-                    <div id="score-text" class="text-base md:text-lg font-bold text-amber-400 leading-none">0</div>
-                </div>
-                <div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">COMBO</div>
-                    <div id="combo-text" class="text-base md:text-lg font-bold text-emerald-400 leading-none">0</div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Game Stage Area (Canvas) -->
-    <main class="flex-1 relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950">
-        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
-        <div id="damage-overlay" class="pointer-events-none absolute inset-0 bg-red-600 opacity-0 transition-opacity duration-150"></div>
-    </main>
-
-    <!-- Bottom Control Bar -->
-    <div class="bg-slate-900 border-t border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between text-xs text-slate-300 z-20 gap-2">
-        <div class="flex items-center space-x-2">
-            <i class="fa-solid fa-sliders text-amber-400"></i>
-            <span class="font-medium text-amber-300">琴鍵範圍：</span>
-            <select id="select-range" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
-                <option value="C4-C5">C4 - C5 (中央八度)</option>
-                <option value="C3-C4">C3 - C4 (低音八度)</option>
-                <option value="C3-C5">C3 - C5 (雙八度)</option>
-            </select>
-        </div>
-
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-                <span class="font-medium text-amber-300">琴鍵標籤：</span>
-                <select id="select-label" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
-                    <option value="CDEFGAB">CDEFGAB</option>
-                    <option value="DOREMI">Do Re Mi</option>
-                    <option value="NONE">隱藏</option>
-                </select>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <span class="font-medium text-amber-300">譜號：</span>
-                <select id="select-clef" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
-                    <option value="treble">高音譜號</option>
-                    <option value="bass">低音譜號</option>
-                    <option value="mixed">混合譜號</option>
-                </select>
-            </div>
-        </div>
+  <!-- 頂部狀態欄 -->
+  <div id="header">
+    <div class="header-group">
+      <button class="icon-btn" id="btn-pause" title="暫停">⏸</button>
+      <button class="icon-btn" id="btn-settings" title="設定">⚙️</button>
+      <button class="icon-btn" id="btn-leaderboard" title="排行榜">🏆</button>
+      <div class="hearts" id="hearts-container">
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      </div>
     </div>
 
-    <!-- Interactive On-Screen Piano -->
-    <div class="h-36 md:h-44 bg-slate-950 p-2 relative border-t-2 border-amber-500/50 shadow-2xl z-20">
-        <div id="piano" class="piano-container">
-            <!-- Piano Keys render dynamically via JavaScript -->
-        </div>
+    <div class="header-group">
+      <div class="mode-badge" id="clef-badge">🎼 高音譜號</div>
+      <div class="mode-info" id="range-badge">C4 - C5 (單八度)</div>
     </div>
 
-    <!-- Start / Game Over Modal -->
-    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
-            <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
-            
-            <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl border border-amber-500/30">
-                <i class="fa-solid fa-music"></i>
-            </div>
-            
-            <h2 id="modal-title" class="text-2xl font-bold text-white mb-2">音符大作戰：城堡守衛戰</h2>
-            <p id="modal-desc" class="text-slate-400 text-sm mb-6">看準五線譜音符，彈奏對應鍵盤發射樂理魔法，守護你的城堡吧！</p>
-
-            <div id="modal-score-board" class="hidden bg-slate-800/80 rounded-xl p-4 mb-6 border border-slate-700 flex justify-around">
-                <div>
-                    <div class="text-xs text-slate-400">最終得分</div>
-                    <div id="final-score" class="text-2xl font-bold text-amber-400">0</div>
-                </div>
-                <div class="border-r border-slate-700"></div>
-                <div>
-                    <div class="text-xs text-slate-400">最大連擊</div>
-                    <div id="final-combo" class="text-2xl font-bold text-emerald-400">0</div>
-                </div>
-            </div>
-
-            <button id="btn-start" class="w-full py-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition transform active:scale-95 text-base">
-                開始遊戲
-            </button>
-        </div>
+    <div class="header-group">
+      <div class="score-box">
+        <div class="score-title">MIDI 連接</div>
+        <div style="font-size: 11px; font-weight: bold; color: #10b981;" id="midi-status">⚡ 內建鍵盤</div>
+      </div>
+      <div class="score-box">
+        <div class="score-title">SCORE</div>
+        <div class="score-val" id="score-text">0</div>
+      </div>
+      <div class="score-box">
+        <div class="score-title">COMBO</div>
+        <div class="combo-val" id="combo-text">0</div>
+      </div>
     </div>
+  </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-gear text-amber-400"></i> 遊戲設定
-                </h3>
-                <button id="btn-close-settings" class="text-slate-400 hover:text-white text-xl">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+  <!-- 遊戲 Canvas 畫面 -->
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
 
-            <div class="space-y-4 text-sm text-slate-200">
-                <!-- Clef Selection -->
-                <div>
-                    <label class="block text-slate-400 mb-1">譜號模式</label>
-                    <select id="modal-select-clef" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="treble">🎼 高音譜號 (Treble Clef)</option>
-                        <option value="bass">𝄢 低音譜號 (Bass Clef)</option>
-                        <option value="mixed">🎼𝄢 混合譜號 (Mixed)</option>
-                    </select>
-                </div>
-
-                <!-- Range Selection -->
-                <div>
-                    <label class="block text-slate-400 mb-1">琴鍵音域</label>
-                    <select id="modal-select-range" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="C4-C5">C4 - C5 (中央單八度)</option>
-                        <option value="C3-C4">C3 - C4 (低音單八度)</option>
-                        <option value="C3-C5">C3 - C5 (雙八度)</option>
-                    </select>
-                </div>
-
-                <!-- Label Selection -->
-                <div>
-                    <label class="block text-slate-400 mb-1">琴鍵標籤</label>
-                    <select id="modal-select-label" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="CDEFGAB">CDEFGAB (音名)</option>
-                        <option value="DOREMI">Do Re Mi (唱名)</option>
-                        <option value="NONE">無標籤 (隱藏)</option>
-                    </select>
-                </div>
-
-                <!-- Game Speed -->
-                <div>
-                    <label class="block text-slate-400 mb-1">怪物速度</label>
-                    <select id="modal-select-speed" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="slow">慢速 (新手推薦)</option>
-                        <option value="normal" selected>一般 (標準挑戰)</option>
-                        <option value="fast">快速 (高難度)</option>
-                    </select>
-                </div>
-
-                <!-- Audio Volume -->
-                <div>
-                    <div class="flex justify-between text-slate-400 mb-1">
-                        <span>主音音量</span>
-                        <span id="volume-val">80%</span>
-                    </div>
-                    <input id="volume-slider" type="range" min="0" max="100" value="80" class="w-full accent-amber-500 cursor-pointer">
-                </div>
-            </div>
-
-            <div class="mt-6 pt-3 border-t border-slate-800 flex justify-end">
-                <button id="btn-save-settings" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition active:scale-95">
-                    儲存並關閉
-                </button>
-            </div>
-        </div>
+  <!-- 控制列 -->
+  <div id="controls-bar">
+    <div class="control-item">
+      <span>⌨️ 琴鍵範圍：</span>
+      <select id="select-range">
+        <option value="C4-C5" selected>C4 - C5 (單八度)</option>
+        <option value="C3-C4">C3 - C4 (低音單八度)</option>
+        <option value="C4-C6">C4 - C6 (雙八度)</option>
+      </select>
     </div>
+    <div class="control-item">
+      <span>🏷️ 琴鍵標籤：</span>
+      <select id="select-label">
+        <option value="CDEFGAB" selected>CDEFGAB</option>
+        <option value="DOREMI">DoReMi</option>
+        <option value="NONE">隱藏</option>
+      </select>
+    </div>
+    <div class="control-item">
+      <span>🎼 譜號：</span>
+      <select id="select-clef">
+        <option value="treble" selected>高音譜號</option>
+        <option value="bass">低音譜號</option>
+      </select>
+    </div>
+  </div>
 
-    <!-- JavaScript Game Logic -->
-    <script>
-        /**
-         * Game Engine & Configuration
-         */
-        const CONFIG = {
-            baseSpeed: 1.2,
-            spawnInterval: 2600, // ms
-            maxLives: 5,
-            noteLabels: {
-                'CDEFGAB': { 'C':'C', 'D':'D', 'E':'E', 'F':'F', 'G':'G', 'A':'A', 'B':'B' },
-                'DOREMI': { 'C':'Do', 'D':'Re', 'E':'Mi', 'F':'Fa', 'G':'Sol', 'A':'La', 'B':'Si' },
-                'NONE': { 'C':'', 'D':'', 'E':'', 'F':'', 'G':'', 'A':'', 'B':'' }
+  <!-- 虛擬鋼琴 -->
+  <div id="piano-container"></div>
+
+  <!-- 開始遊戲 / 名稱輸入彈窗 -->
+  <div class="modal active" id="modal-start">
+    <div class="modal-content">
+      <div class="modal-title">🏰 音符大作戰</div>
+      <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 20px;">保護城堡！彈奏正確的音符擊退進攻的音樂怪獸！</p>
+      
+      <div class="form-group">
+        <label for="player-name-input">請輸入你的名字：</label>
+        <input type="text" id="player-name-input" class="form-control" value="音符騎士" maxlength="12" placeholder="請輸入名字...">
+      </div>
+
+      <button class="btn" id="btn-start-game">🚀 開始遊戲</button>
+    </div>
+  </div>
+
+  <!-- 排行榜彈窗 -->
+  <div class="modal" id="modal-leaderboard">
+    <div class="modal-content">
+      <div class="modal-title">🏆 英雄排行榜</div>
+      <ul class="leaderboard-list" id="leaderboard-items">
+        <!-- 排行榜動態插入 -->
+      </ul>
+      <button class="btn btn-secondary" id="btn-close-leaderboard">關閉</button>
+    </div>
+  </div>
+
+  <!-- 遊戲結束彈窗 -->
+  <div class="modal" id="modal-gameover">
+    <div class="modal-content">
+      <div class="modal-title" style="color:#ef4444;">💥 城堡失守！</div>
+      <p style="text-align: center; font-size: 16px; margin-bottom: 12px;">最終得分：<span id="final-score" style="color:#f59e0b; font-weight:900; font-size:22px;">0</span></p>
+      <p style="text-align: center; font-size: 14px; color:#10b981; margin-bottom: 20px;">最大連擊：<span id="final-combo">0</span> Combo</p>
+      <button class="btn" id="btn-restart">🔄 再試一次</button>
+      <button class="btn btn-secondary" id="btn-gameover-leaderboard">🏆 查看排行榜</button>
+    </div>
+  </div>
+
+  <!-- 設定彈窗 -->
+  <div class="modal" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-title">⚙️ 遊戲設定</div>
+      <div class="form-group">
+        <label>主音量：</label>
+        <input type="range" id="setting-volume" min="0" max="100" value="80" style="width:100%;">
+      </div>
+      <div class="form-group">
+        <label>怪物移動速度：</label>
+        <select id="setting-speed" class="form-control">
+          <option value="1">慢速 (適合初學者)</option>
+          <option value="1.5" selected>標準速度</option>
+          <option value="2.2">快速 (挑戰極限)</option>
+        </select>
+      </div>
+      <button class="btn" id="btn-save-settings">儲存並關閉</button>
+    </div>
+  </div>
+
+  <script>
+    // --- 音符資料庫與樂理定義 ---
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const DOREMI_NAMES = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+
+    // 高音譜號 C4 到 G5 偏移量（以 C4 為 0）
+    const TREBLE_PITCH_MAP = {
+      'C4': 0, 'D4': 1, 'E4': 2, 'F4': 3, 'G4': 4, 'A4': 5, 'B4': 6,
+      'C5': 7, 'D5': 8, 'E5': 9, 'F5': 10, 'G5': 11, 'A5': 12, 'B5': 13, 'C6': 14
+    };
+
+    // 低音譜號 C2 到 C4 偏移量（以 C2 為 0）
+    const BASS_PITCH_MAP = {
+      'C2': 0, 'D2': 1, 'E2': 2, 'F2': 3, 'G2': 4, 'A2': 5, 'B2': 6,
+      'C3': 7, 'D3': 8, 'E3': 9, 'F3': 10, 'G3': 11, 'A3': 12, 'B3': 13, 'C4': 14
+    };
+
+    // MIDI 編號轉音名
+    function midiToNoteName(midi) {
+      const name = NOTE_NAMES[midi % 12];
+      const octave = Math.floor(midi / 12) - 1;
+      return name + octave;
+    }
+
+    function midiToFreq(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    // --- 音效合成器 (Web Audio API) ---
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.volume = 0.8;
+      }
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+      playNote(midi) {
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(midiToFreq(midi), this.ctx.currentTime);
+
+        gain.gain.setValueAtTime(this.volume * 0.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 1.2);
+      }
+      playHit() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(this.volume * 0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.15);
+      }
+      playMiss() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(this.volume * 0.4, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.25);
+      }
+    }
+
+    const audio = new AudioEngine();
+
+    // --- 遊戲狀態與變數 ---
+    let playerName = "音符騎士";
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let hp = 5;
+    let isPaused = false;
+    let isGameOver = false;
+    let gameStarted = false;
+    let speedMultiplier = 1.5;
+
+    let currentClef = 'treble'; // treble / bass
+    let currentRange = 'C4-C5';
+    let currentLabelMode = 'CDEFGAB';
+
+    let monsters = [];
+    let magicProjectiles = [];
+    let spawnTimer = 0;
+
+    // --- Canvas & 繪圖相關 ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const container = document.getElementById('game-container');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // 音符怪物件
+    class NoteMonster {
+      constructor(midi, noteName, clef) {
+        this.midi = midi;
+        this.noteName = noteName;
+        this.clef = clef;
+        this.x = canvas.width + 80;
+        this.y = canvas.height - 180;
+        this.width = 110;
+        this.height = 150;
+        this.speed = (1.2 + Math.random() * 0.4) * speedMultiplier;
+        this.bounce = Math.random() * Math.PI * 2;
+      }
+
+      update() {
+        this.x -= this.speed;
+        this.bounce += 0.08;
+      }
+
+      draw() {
+        const floatY = Math.sin(this.bounce) * 6;
+        const cardX = this.x;
+        const cardY = this.y + floatY;
+
+        ctx.save();
+
+        // 1. 繪製卡片邊框與陰影
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(cardX - this.width/2, cardY - this.height/2, this.width, this.height, 14);
+        ctx.fill();
+
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 2. 繪製卡片內的五線譜與音符
+        this.drawStaffAndNote(cardX, cardY - 10);
+
+        // 3. 底部紫色小怪物
+        const monsterY = cardY + this.height/2 + 10;
+        ctx.fillStyle = '#8b5cf6';
+        ctx.beginPath();
+        ctx.arc(cardX, monsterY, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 大眼睛
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cardX - 7, monsterY - 3, 6, 0, Math.PI * 2);
+        ctx.arc(cardX + 7, monsterY - 3, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(cardX - 5, monsterY - 3, 3, 0, Math.PI * 2);
+        ctx.arc(cardX + 5, monsterY - 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      drawStaffAndNote(cx, cy) {
+        const lineSpacing = 9;
+        const staffTop = cy - (lineSpacing * 2);
+
+        // 繪製 5 條平行的五線譜線
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) {
+          const ly = staffTop + i * lineSpacing;
+          ctx.beginPath();
+          ctx.moveTo(cx - 38, ly);
+          ctx.lineTo(cx + 38, ly);
+          ctx.stroke();
+        }
+
+        // 放大一倍繪製譜號 (Scale 2x)
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 36px serif'; // 放大兩倍
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (this.clef === 'treble') {
+          ctx.fillText('𝄞', cx - 24, cy + 2);
+        } else {
+          ctx.fillText('𝄢', cx - 24, cy - 2);
+        }
+
+        // --- 精準符桿方向計算 (關鍵樂理規則) ---
+        // 高音譜號：B4(MIDI 71, 中間線) 及以上 -> 符桿朝下(左側)
+        // 低音譜號：D3(MIDI 50, 中間線) 及以上 -> 符桿朝下(左側)
+        let middleLineMidi = (this.clef === 'treble') ? 71 : 50;
+        let baseMidi = (this.clef === 'treble') ? 60 : 36; // C4 或 C2
+
+        // 計算相對於最底下線的步數
+        let noteOffset = 0;
+        if (this.clef === 'treble') {
+          noteOffset = TREBLE_PITCH_MAP[this.noteName] !== undefined ? TREBLE_PITCH_MAP[this.noteName] : 0;
+        } else {
+          noteOffset = BASS_PITCH_MAP[this.noteName] !== undefined ? BASS_PITCH_MAP[this.noteName] : 0;
+        }
+
+        // 高音譜號第一線 (E4) 的 index 為 2 (C4=0, D4=1, E4=2)
+        // 低音譜號第一線 (G2) 的 index 為 4 (C2=0, D2=1, E2=2, F2=3, G2=4)
+        const bottomLineIndex = (this.clef === 'treble') ? 2 : 4;
+        const stepsFromBottomLine = noteOffset - bottomLineIndex;
+
+        // 計算音符 Y 座標
+        const bottomLineY = staffTop + 4 * lineSpacing;
+        const noteY = bottomLineY - (stepsFromBottomLine * (lineSpacing / 2));
+        const noteX = cx + 8;
+
+        // 判斷符桿方向：中間線及以上 (stemDown = true)
+        const stemDown = (this.midi >= middleLineMidi);
+
+        // 繪製加線 (Ledger Lines)
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+        // 下加線 (例：C4)
+        if (stepsFromBottomLine < 0) {
+          for (let s = -2; s >= stepsFromBottomLine; s -= 2) {
+            const ly = bottomLineY - (s * (lineSpacing / 2));
+            ctx.beginPath();
+            ctx.moveTo(noteX - 10, ly);
+            ctx.lineTo(noteX + 10, ly);
+            ctx.stroke();
+          }
+        }
+        // 上加線 (例：A5)
+        if (stepsFromBottomLine > 8) {
+          for (let s = 10; s <= stepsFromBottomLine; s += 2) {
+            const ly = bottomLineY - (s * (lineSpacing / 2));
+            ctx.beginPath();
+            ctx.moveTo(noteX - 10, ly);
+            ctx.lineTo(noteX + 10, ly);
+            ctx.stroke();
+          }
+        }
+
+        // 繪製符頭 (Note Head - 傾斜橢圓)
+        ctx.save();
+        ctx.translate(noteX, noteY);
+        ctx.rotate(-0.25);
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6.5, 4.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 繪製符桿 (Note Stem)
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (stemDown) {
+          // 符桿朝下：接在符頭左邊 (noteX - 5.5)
+          ctx.moveTo(noteX - 5.5, noteY);
+          ctx.lineTo(noteX - 5.5, noteY + 28);
+        } else {
+          // 符桿朝上：接在符頭右邊 (noteX + 5.5)
+          ctx.moveTo(noteX + 5.5, noteY);
+          ctx.lineTo(noteX + 5.5, noteY - 28);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // 魔法彈特效
+    class MagicProjectile {
+      constructor(targetX, targetY) {
+        this.x = 130;
+        this.y = canvas.height - 210;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.progress = 0;
+        this.speed = 0.08;
+      }
+      update() {
+        this.progress += this.speed;
+        return this.progress >= 1;
+      }
+      draw() {
+        const cx = this.x + (this.targetX - this.x) * this.progress;
+        const cy = this.y + (this.targetY - this.y) * this.progress;
+
+        ctx.save();
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // --- 城堡與守衛騎士繪製 ---
+    function drawCastleAndKnight() {
+      const castleX = 30;
+      const castleY = canvas.height - 230;
+
+      ctx.save();
+
+      // 城堡主體
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(castleX, castleY + 60, 100, 100);
+
+      // 城牆垛
+      ctx.fillStyle = '#334155';
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(castleX + i * 26, castleY + 45, 18, 20);
+      }
+
+      // 藍色屋頂塔樓
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(castleX + 15, castleY + 45);
+      ctx.lineTo(castleX + 50, castleY - 10);
+      ctx.lineTo(castleX + 85, castleY + 45);
+      ctx.closePath();
+      ctx.fill();
+
+      // 城堡門
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(castleX + 35, castleY + 110, 30, 50);
+
+      // --- 小騎士 ---
+      const knightX = castleX + 50;
+      const knightY = castleY - 20;
+
+      // 騎士盔甲身體
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(knightX - 12, knightY, 24, 24);
+
+      // 騎士頭盔
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(knightX, knightY - 10, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 頭盔羽毛飾品
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(knightX, knightY - 22, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 盾牌
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(knightX - 18, knightY + 2, 8, 14);
+
+      ctx.restore();
+    }
+
+    // --- 遊戲主要迴圈 ---
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. 繪製防禦地平線與星空背景
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height - 70);
+      ctx.lineTo(canvas.width, canvas.height - 70);
+      ctx.stroke();
+
+      // 2. 繪製城堡與騎士
+      drawCastleAndKnight();
+
+      if (gameStarted && !isPaused && !isGameOver) {
+        // 生成怪物邏輯
+        spawnTimer++;
+        if (spawnTimer > 130 / speedMultiplier) {
+          spawnMonster();
+          spawnTimer = 0;
+        }
+
+        // 更新與繪製魔法彈
+        for (let i = magicProjectiles.length - 1; i >= 0; i--) {
+          const p = magicProjectiles[i];
+          if (p.update()) {
+            magicProjectiles.splice(i, 1);
+          } else {
+            p.draw();
+          }
+        }
+
+        // 更新與繪製音符怪
+        for (let i = monsters.length - 1; i >= 0; i--) {
+          const m = monsters[i];
+          m.update();
+          m.draw();
+
+          // 音符怪碰觸城堡扣血
+          if (m.x <= 130) {
+            monsters.splice(i, 1);
+            takeDamage();
+          }
+        }
+      } else {
+        // 暫停或未開始時僅繪製怪物
+        monsters.forEach(m => m.draw());
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 生成怪物
+    function spawnMonster() {
+      let activeNotes = getActiveNotesForRange();
+      if (activeNotes.length === 0) return;
+      const targetNote = activeNotes[Math.floor(Math.random() * activeNotes.length)];
+      monsters.push(new NoteMonster(targetNote.midi, targetNote.name, currentClef));
+    }
+
+    // 當前模式下的可用音符列表
+    function getActiveNotesForRange() {
+      let list = [];
+      if (currentClef === 'treble') {
+        if (currentRange === 'C4-C5') {
+          // C4 到 C5 的自然音 (白鍵)
+          [60, 62, 64, 65, 67, 69, 71, 72].forEach(m => list.push({ midi: m, name: midiToNoteName(m) }));
+        } else if (currentRange === 'C4-C6') {
+          for (let m = 60; m <= 84; m++) {
+            if (!NOTE_NAMES[m % 12].includes('#')) {
+              list.push({ midi: m, name: midiToNoteName(m) });
             }
-        };
-
-        // Pitch definitions: staffOffset=0 is Middle Line (Line 3).
-        // Negative staffOffset is ABOVE middle line, Positive is BELOW middle line.
-        const PITCH_DATA = {
-            // Bass Clef Pitch Data (Middle Line = Line 3 = D3 = staffOffset 0)
-            'C3': { midi: 48, staffOffset: 1, clef: 'bass' },
-            'D3': { midi: 50, staffOffset: 0, clef: 'bass' },  // Middle Line
-            'E3': { midi: 52, staffOffset: -1, clef: 'bass' },
-            'F3': { midi: 53, staffOffset: -2, clef: 'bass' },
-            'G3': { midi: 55, staffOffset: -3, clef: 'bass' },
-            'A3': { midi: 57, staffOffset: -4, clef: 'bass' },
-            'B3': { midi: 59, staffOffset: -5, clef: 'bass' },
-
-            // Treble Clef Pitch Data (Middle Line = Line 3 = B4 = staffOffset 0)
-            'C4': { midi: 60, staffOffset: 6, clef: 'treble' },  // Ledger Line below
-            'D4': { midi: 62, staffOffset: 5, clef: 'treble' },  // Space below line 1
-            'E4': { midi: 64, staffOffset: 4, clef: 'treble' },  // Line 1
-            'F4': { midi: 65, staffOffset: 3, clef: 'treble' },  // Space 1
-            'G4': { midi: 67, staffOffset: 2, clef: 'treble' },  // Line 2
-            'A4': { midi: 69, staffOffset: 1, clef: 'treble' },  // Space 2
-            'B4': { midi: 71, staffOffset: 0, clef: 'treble' },  // Line 3 (Middle Line)
-            'C5': { midi: 72, staffOffset: -1, clef: 'treble' }, // Space 3
-            'D5': { midi: 74, staffOffset: -2, clef: 'treble' }, // Line 4
-            'E5': { midi: 76, staffOffset: -3, clef: 'treble' }, // Space 4
-            'F5': { midi: 77, staffOffset: -4, clef: 'treble' }, // Line 5
-            'G5': { midi: 79, staffOffset: -5, clef: 'treble' }, // Space above
-            'A5': { midi: 81, staffOffset: -6, clef: 'treble' }, // Ledger line above
-            'B5': { midi: 83, staffOffset: -7, clef: 'treble' },
-            'C6': { midi: 84, staffOffset: -8, clef: 'treble' }
-        };
-
-        // Audio Context (Synthesizer)
-        let audioCtx = null;
-        let masterGain = null;
-        let masterVolume = 0.8;
-
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                masterGain = audioCtx.createGain();
-                masterGain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
-                masterGain.connect(audioCtx.destination);
+          }
+        }
+      } else {
+        // 低音譜號
+        if (currentRange === 'C3-C4') {
+          [48, 50, 52, 53, 55, 57, 59, 60].forEach(m => list.push({ midi: m, name: midiToNoteName(m) }));
+        } else {
+          for (let m = 36; m <= 60; m++) {
+            if (!NOTE_NAMES[m % 12].includes('#')) {
+              list.push({ midi: m, name: midiToNoteName(m) });
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+          }
+        }
+      }
+      return list;
+    }
+
+    // 處理玩家輸入音符（鋼琴點擊或 MIDI）
+    function handlePlayNote(midi) {
+      if (!gameStarted || isPaused || isGameOver) return;
+
+      audio.playNote(midi);
+
+      // 高亮虛擬鋼琴
+      const keyEl = document.querySelector(`[data-midi="${midi}"]`);
+      if (keyEl) {
+        keyEl.classList.add('active');
+        setTimeout(() => keyEl.classList.remove('active'), 200);
+      }
+
+      // 檢測是否擊中排在最前面的怪物
+      if (monsters.length > 0) {
+        // 尋找最靠近城堡的怪物
+        let closestIndex = 0;
+        let minX = monsters[0].x;
+        for (let i = 1; i < monsters.length; i++) {
+          if (monsters[i].x < minX) {
+            minX = monsters[i].x;
+            closestIndex = i;
+          }
         }
 
-        function setVolume(val) {
-            masterVolume = val;
-            if (masterGain && audioCtx) {
-                masterGain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
-            }
+        const target = monsters[closestIndex];
+        if (target.midi === midi) {
+          // 擊中成功
+          audio.playHit();
+          magicProjectiles.push(new MagicProjectile(target.x, target.y));
+          monsters.splice(closestIndex, 1);
+
+          score += 10 + combo * 2;
+          combo++;
+          if (combo > maxCombo) maxCombo = combo;
+          updateUI();
+        } else {
+          // 彈錯
+          audio.playMiss();
+          combo = 0;
+          updateUI();
         }
+      }
+    }
 
-        function playPianoTone(freq) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+    // 城堡受傷害
+    function takeDamage() {
+      audio.playMiss();
+      hp--;
+      combo = 0;
+      updateUI();
+      if (hp <= 0) {
+        endGame();
+      }
+    }
 
-            osc.connect(gain);
-            gain.connect(masterGain || audioCtx.destination);
+    // 更新 UI
+    function updateUI() {
+      document.getElementById('score-text').innerText = score;
+      document.getElementById('combo-text').innerText = combo;
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + 1.2);
+      // 血條渲染
+      const heartsContainer = document.getElementById('hearts-container');
+      heartsContainer.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const heart = document.createElement('span');
+        heart.className = `heart ${i < hp ? '' : 'empty'}`;
+        heart.innerText = '❤️';
+        heartsContainer.appendChild(heart);
+      }
+    }
+
+    // --- 虛擬鋼琴渲染 ---
+    function renderPiano() {
+      const container = document.getElementById('piano-container');
+      container.innerHTML = '';
+
+      let notes = getActiveNotesForRange();
+      if (notes.length === 0) return;
+
+      const minMidi = notes[0].midi;
+      const maxMidi = notes[notes.length - 1].midi;
+
+      // 算出所有的白鍵與黑鍵
+      let whiteKeys = [];
+      for (let m = minMidi; m <= maxMidi; m++) {
+        if (!NOTE_NAMES[m % 12].includes('#')) {
+          whiteKeys.push(m);
         }
+      }
 
-        function playSoundEffect(type) {
-            if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(masterGain || audioCtx.destination);
+      const whiteKeyWidthPercent = 100 / whiteKeys.length;
 
-            if (type === 'hit') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'miss') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.linearRampToValueAtTime(110, now + 0.25);
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
-                osc.start(now);
-                osc.stop(now + 0.25);
-            }
+      whiteKeys.forEach((midi, index) => {
+        const wKey = document.createElement('div');
+        wKey.className = 'white-key';
+        wKey.dataset.midi = midi;
+
+        const label = document.createElement('span');
+        label.className = 'key-label';
+        label.innerText = getLabelForMidi(midi);
+        wKey.appendChild(label);
+
+        wKey.addEventListener('mousedown', () => handlePlayNote(midi));
+        wKey.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          handlePlayNote(midi);
+        });
+
+        container.appendChild(wKey);
+
+        // 檢查後面是否有黑鍵
+        const nextMidi = midi + 1;
+        if (NOTE_NAMES[nextMidi % 12].includes('#') && nextMidi <= maxMidi) {
+          const bKey = document.createElement('div');
+          bKey.className = 'black-key';
+          bKey.dataset.midi = nextMidi;
+          bKey.style.left = `${(index + 1) * whiteKeyWidthPercent - 3.5}%`;
+
+          const bLabel = document.createElement('span');
+          bLabel.className = 'key-label';
+          bLabel.innerText = getLabelForMidi(nextMidi);
+          bKey.appendChild(bLabel);
+
+          bKey.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            handlePlayNote(nextMidi);
+          });
+          bKey.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handlePlayNote(nextMidi);
+          });
+
+          container.appendChild(bKey);
         }
+      });
+    }
 
-        function midiToFreq(midi) {
-            return 440 * Math.pow(2, (midi - 69) / 12);
-        }
+    function getLabelForMidi(midi) {
+      if (currentLabelMode === 'NONE') return '';
+      const noteIdx = midi % 12;
+      const octave = Math.floor(midi / 12) - 1;
+      if (currentLabelMode === 'DOREMI') {
+        return DOREMI_NAMES[noteIdx];
+      }
+      return NOTE_NAMES[noteIdx] + octave;
+    }
 
-        /**
-         * Game State Management
-         */
-        const state = {
-            isPlaying: false,
-            isPaused: false,
-            score: 0,
-            combo: 0,
-            maxCombo: 0,
-            lives: CONFIG.maxLives,
-            currentRange: 'C4-C5',
-            labelMode: 'CDEFGAB',
-            clefMode: 'treble',
-            speedMultiplier: 1.0,
-            monsters: [],
-            particles: [],
-            projectiles: [],
-            lastSpawnTime: 0,
-            spawnInterval: CONFIG.spawnInterval,
-            activeKeys: new Set()
-        };
-
-        // DOM Elements
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const pianoContainer = document.getElementById('piano');
-        const hpBar = document.getElementById('hp-bar');
-        const scoreText = document.getElementById('score-text');
-        const comboText = document.getElementById('combo-text');
-        const damageOverlay = document.getElementById('damage-overlay');
-        const modalOverlay = document.getElementById('modal-overlay');
-        const modalTitle = document.getElementById('modal-title');
-        const modalDesc = document.getElementById('modal-desc');
-        const modalScoreBoard = document.getElementById('modal-score-board');
-        const finalScore = document.getElementById('final-score');
-        const finalCombo = document.getElementById('final-combo');
-        const btnStart = document.getElementById('btn-start');
-        const btnPause = document.getElementById('btn-pause');
-        const btnSettings = document.getElementById('btn-settings');
-        const settingsModal = document.getElementById('settings-modal');
-        const btnCloseSettings = document.getElementById('btn-close-settings');
-        const btnSaveSettings = document.getElementById('btn-save-settings');
-
-        const selectRange = document.getElementById('select-range');
-        const selectLabel = document.getElementById('select-label');
-        const selectClef = document.getElementById('select-clef');
-        const rangeBadge = document.getElementById('range-badge');
-        const clefBadge = document.getElementById('clef-badge');
-
-        const modalSelectClef = document.getElementById('modal-select-clef');
-        const modalSelectRange = document.getElementById('modal-select-range');
-        const modalSelectLabel = document.getElementById('modal-select-label');
-        const modalSelectSpeed = document.getElementById('modal-select-speed');
-        const volumeSlider = document.getElementById('volume-slider');
-        const volumeVal = document.getElementById('volume-val');
-
-        /**
-         * Responsive Canvas Setup
-         */
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        /**
-         * Piano Renderer & Interaction Handling
-         */
-        function getOctaveKeys(range) {
-            let keys = [];
-            if (range === 'C4-C5') {
-                keys = ['C4', 'C4#', 'D4', 'D4#', 'E4', 'F4', 'F4#', 'G4', 'G4#', 'A4', 'A4#', 'B4', 'C5'];
-            } else if (range === 'C3-C4') {
-                keys = ['C3', 'C3#', 'D3', 'D3#', 'E3', 'F3', 'F3#', 'G3', 'G3#', 'A3', 'A3#', 'B3', 'C4'];
-            } else if (range === 'C3-C5') {
-                keys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-            }
-            return keys;
-        }
-
-        function buildPiano() {
-            pianoContainer.innerHTML = '';
-            const keyList = getOctaveKeys(state.currentRange);
-            const whiteKeys = keyList.filter(k => !k.includes('#'));
-
-            let whiteIndex = 0;
-            keyList.forEach((note) => {
-                const isBlack = note.includes('#');
-                const keyEl = document.createElement('div');
-                keyEl.dataset.note = note;
-
-                if (!isBlack) {
-                    keyEl.className = 'white-key flex items-end justify-center pb-2 text-slate-700 font-bold text-xs sm:text-sm select-none';
-                    const pitchName = note.charAt(0);
-                    const label = CONFIG.noteLabels[state.labelMode][pitchName] || '';
-                    const octave = note.slice(-1);
-                    keyEl.innerHTML = `<span>${label}${label ? `<sub class="text-[9px]">${octave}</sub>` : ''}</span>`;
-                    whiteIndex++;
-                } else {
-                    keyEl.className = 'black-key flex items-end justify-center pb-1 text-slate-300 text-[10px] select-none';
-                    const prevWhiteCount = whiteIndex;
-                    const totalWhite = whiteKeys.length;
-                    const keyWidthPercent = 100 / totalWhite;
-                    const leftPos = (prevWhiteCount - 0.35) * keyWidthPercent;
-                    keyEl.style.left = `${leftPos}%`;
-                    keyEl.style.width = `${keyWidthPercent * 0.7}%`;
-                }
-
-                // Event Listeners for Touch & Mouse
-                const handlePress = (e) => {
-                    e.preventDefault();
-                    initAudio();
-                    triggerNoteAttack(note);
-                };
-
-                const handleRelease = (e) => {
-                    e.preventDefault();
-                    triggerNoteRelease(note);
-                };
-
-                keyEl.addEventListener('mousedown', handlePress);
-                keyEl.addEventListener('mouseup', handleRelease);
-                keyEl.addEventListener('mouseleave', handleRelease);
-                keyEl.addEventListener('touchstart', handlePress, { passive: false });
-                keyEl.addEventListener('touchend', handleRelease, { passive: false });
-
-                pianoContainer.appendChild(keyEl);
-            });
-        }
-
-        function triggerNoteAttack(note) {
-            if (state.activeKeys.has(note)) return;
-            state.activeKeys.add(note);
-
-            const el = pianoContainer.querySelector(`[data-note="${note}"]`);
-            if (el) el.classList.add('active');
-
-            if (PITCH_DATA[note]) {
-                playPianoTone(midiToFreq(PITCH_DATA[note].midi));
-            } else if (note.includes('#')) {
-                const baseNote = note.replace('#', '');
-                if (PITCH_DATA[baseNote]) {
-                    playPianoTone(midiToFreq(PITCH_DATA[baseNote].midi + 1));
-                }
-            }
-
-            checkNoteHit(note);
-        }
-
-        function triggerNoteRelease(note) {
-            state.activeKeys.delete(note);
-            const el = pianoContainer.querySelector(`[data-note="${note}"]`);
-            if (el) el.classList.remove('active');
-        }
-
-        /**
-         * Web MIDI API Integration
-         */
-        function setupWebMIDI() {
-            if (navigator.requestMIDIAccess) {
-                navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
-            }
-        }
-
-        function onMIDISuccess(midiAccess) {
-            const midiStatus = document.getElementById('midi-status');
+    // --- MIDI 裝置連線支援 (Web MIDI API) ---
+    function initMIDI() {
+      if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then(
+          (midiAccess) => {
             const inputs = midiAccess.inputs.values();
-
-            let hasDevice = false;
+            let connected = false;
             for (let input of inputs) {
-                hasDevice = true;
-                input.onmidimessage = handleMIDIMessage;
+              connected = true;
+              input.onmidimessage = onMIDIMessage;
             }
-
-            if (hasDevice) {
-                midiStatus.classList.remove('hidden');
-                midiStatus.className = 'flex items-center space-x-1 text-xs bg-emerald-950 px-2.5 py-1 rounded-full text-emerald-400 border border-emerald-800';
-                midiStatus.innerHTML = `<i class="fa-solid fa-plug text-emerald-400"></i><span>MIDI 已連線</span>`;
+            if (connected) {
+              document.getElementById('midi-status').innerText = '🎹 已連接數碼琴';
             }
-
-            midiAccess.onstatechange = (e) => {
-                if (e.port.type === 'input') {
-                    if (e.port.state === 'connected') {
-                        e.port.onmidimessage = handleMIDIMessage;
-                        midiStatus.classList.remove('hidden');
-                        midiStatus.className = 'flex items-center space-x-1 text-xs bg-emerald-950 px-2.5 py-1 rounded-full text-emerald-400 border border-emerald-800';
-                        midiStatus.innerHTML = `<i class="fa-solid fa-plug text-emerald-400"></i><span>MIDI 已連線</span>`;
-                    } else {
-                        midiStatus.className = 'flex items-center space-x-1 text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 border border-slate-700';
-                        midiStatus.innerHTML = `<i class="fa-plug-circle-xmark text-amber-500"></i><span>MIDI 未連線</span>`;
-                    }
-                }
-            };
-        }
-
-        function onMIDIFailure() {
-            console.log("Web MIDI API access denied or unsupported.");
-        }
-
-        function handleMIDIMessage(event) {
-            const [command, noteNum, velocity] = event.data;
-            const cmd = command >> 4;
-
-            if (cmd === 9 && velocity > 0) {
-                const noteName = midiToNoteName(noteNum);
-                if (noteName) triggerNoteAttack(noteName);
-            } else if (cmd === 8 || (cmd === 9 && velocity === 0)) {
-                const noteName = midiToNoteName(noteNum);
-                if (noteName) triggerNoteRelease(noteName);
-            }
-        }
-
-        function midiToNoteName(midi) {
-            for (let name in PITCH_DATA) {
-                if (PITCH_DATA[name].midi === midi) return name;
-            }
-            return null;
-        }
-
-        /**
-         * Game Logic & Rendering
-         */
-        class Monster {
-            constructor(noteKey, clef) {
-                this.noteKey = noteKey;
-                this.clef = clef; // 'treble' or 'bass'
-                this.width = 72;
-                this.height = 96;
-                this.x = canvas.width + 20;
-                this.y = canvas.height * 0.42;
-                this.speed = (CONFIG.baseSpeed + Math.random() * 0.4) * state.speedMultiplier;
-                this.hp = 1;
-                this.pulse = 0;
-            }
-
-            update() {
-                this.x -= this.speed;
-                this.pulse += 0.05;
-            }
-
-            draw(ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-
-                // 1. Draw Card Background
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetY = 4;
-                ctx.beginPath();
-                ctx.roundRect(-this.width/2, -this.height/2, this.width, this.height, 10);
-                ctx.fill();
-                ctx.shadowColor = 'transparent';
-
-                // 2. Draw 5 Staff Lines
-                ctx.strokeStyle = '#334155';
-                ctx.lineWidth = 1.2;
-                const lineSpacing = 8;
-                const staffCenterY = -10; // Middle Line (3rd Line)
-
-                for (let i = -2; i <= 2; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(-this.width/2 + 8, staffCenterY + i * lineSpacing);
-                    ctx.lineTo(this.width/2 - 8, staffCenterY + i * lineSpacing);
-                    ctx.stroke();
-                }
-
-                // 3. Draw Clef Symbol
-                ctx.fillStyle = '#1e293b';
-                ctx.font = '18px serif';
-                ctx.fillText(this.clef === 'treble' ? '🎼' : '𝄢', -this.width/2 + 8, staffCenterY + 8);
-
-                // 4. Draw Note Header & Correct Stem Direction
-                const pitchInfo = PITCH_DATA[this.noteKey];
-                if (pitchInfo) {
-                    // Y position based on staff offset
-                    const noteY = staffCenterY + (pitchInfo.staffOffset * (lineSpacing / 2));
-                    const noteRadiusX = 5.5;
-                    const noteRadiusY = 4;
-
-                    // Draw Ledger Lines (加線)
-                    ctx.strokeStyle = '#334155';
-                    ctx.lineWidth = 1.2;
-                    if (pitchInfo.staffOffset >= 6) { // Below staff (C4)
-                        for (let line = 6; line <= pitchInfo.staffOffset; line += 2) {
-                            const ly = staffCenterY + (line * (lineSpacing / 2));
-                            ctx.beginPath();
-                            ctx.moveTo(-11, ly);
-                            ctx.lineTo(11, ly);
-                            ctx.stroke();
-                        }
-                    } else if (pitchInfo.staffOffset <= -6) { // Above staff
-                        for (let line = -6; line >= pitchInfo.staffOffset; line -= 2) {
-                            const ly = staffCenterY + (line * (lineSpacing / 2));
-                            ctx.beginPath();
-                            ctx.moveTo(-11, ly);
-                            ctx.lineTo(11, ly);
-                            ctx.stroke();
-                        }
-                    }
-
-                    // Note Head (符頭)
-                    ctx.fillStyle = '#0f172a';
-                    ctx.beginPath();
-                    ctx.ellipse(0, noteY, noteRadiusX, noteRadiusY, -Math.PI / 6, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Stem Direction Rule (符桿方向樂理規則):
-                    // Middle line (staffOffset <= 0) and above -> Stem Down (朝下，連在符頭左邊)
-                    // Below middle line (staffOffset > 0) -> Stem Up (朝上，連在符頭右邊)
-                    const isStemDown = pitchInfo.staffOffset <= 0;
-                    const stemHeight = 22;
-                    ctx.strokeStyle = '#0f172a';
-                    ctx.lineWidth = 1.6;
-
-                    ctx.beginPath();
-                    if (isStemDown) {
-                        // Attach to LEFT edge of notehead, extend DOWNWARDS
-                        const stemX = -noteRadiusX + 1;
-                        ctx.moveTo(stemX, noteY);
-                        ctx.lineTo(stemX, noteY + stemHeight);
-                    } else {
-                        // Attach to RIGHT edge of notehead, extend UPWARDS
-                        const stemX = noteRadiusX - 1;
-                        ctx.moveTo(stemX, noteY);
-                        ctx.lineTo(stemX, noteY - stemHeight);
-                    }
-                    ctx.stroke();
-                }
-
-                // 5. Draw Monster Body Underneath Card
-                const monsterY = this.height/2 + 14 + Math.sin(this.pulse) * 3;
-                ctx.fillStyle = '#8b5cf6';
-                ctx.beginPath();
-                ctx.arc(0, monsterY, 13, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Eyes
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(-4, monsterY - 2, 4, 0, Math.PI * 2);
-                ctx.arc(4, monsterY - 2, 4, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.arc(-3, monsterY - 2, 2, 0, Math.PI * 2);
-                ctx.arc(5, monsterY - 2, 2, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
-            }
-        }
-
-        class Projectile {
-            constructor(startX, startY, targetX, targetY) {
-                this.x = startX;
-                this.y = startY;
-                this.targetX = targetX;
-                this.targetY = targetY;
-                this.speed = 12;
-                const angle = Math.atan2(targetY - startY, targetX - startX);
-                this.vx = Math.cos(angle) * this.speed;
-                this.vy = Math.sin(angle) * this.speed;
-                this.alive = true;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                if (Math.hypot(this.targetX - this.x, this.targetY - this.y) < 15) {
-                    this.alive = false;
-                }
-            }
-
-            draw(ctx) {
-                ctx.save();
-                ctx.fillStyle = '#f59e0b';
-                ctx.shadowColor = '#fbbf24';
-                ctx.shadowBlur = 8;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                this.vx = (Math.random() - 0.5) * 6;
-                this.vy = (Math.random() - 0.5) * 6;
-                this.alpha = 1;
-                this.size = Math.random() * 4 + 2;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= 0.03;
-            }
-
-            draw(ctx) {
-                ctx.save();
-                ctx.globalAlpha = Math.max(0, this.alpha);
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        function spawnMonster() {
-            let availableKeys = getOctaveKeys(state.currentRange).filter(k => !k.includes('#'));
-            
-            let clef = state.clefMode;
-            if (clef === 'mixed') {
-                clef = Math.random() > 0.5 ? 'treble' : 'bass';
-            }
-
-            // Filter keys matching current clef definition if necessary
-            if (clef === 'bass') {
-                availableKeys = availableKeys.filter(k => PITCH_DATA[k] && PITCH_DATA[k].clef === 'bass');
-                if (availableKeys.length === 0) availableKeys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3'];
-            } else if (clef === 'treble') {
-                availableKeys = availableKeys.filter(k => PITCH_DATA[k] && PITCH_DATA[k].clef === 'treble');
-                if (availableKeys.length === 0) availableKeys = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-            }
-
-            const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
-            state.monsters.push(new Monster(randomKey, clef));
-        }
-
-        function checkNoteHit(playedNote) {
-            if (!state.isPlaying || state.isPaused) return;
-
-            let matchedIndex = -1;
-            let minX = Infinity;
-
-            state.monsters.forEach((m, index) => {
-                if (m.noteKey === playedNote && m.x < minX) {
-                    minX = m.x;
-                    matchedIndex = index;
-                }
-            });
-
-            if (matchedIndex !== -1) {
-                const target = state.monsters[matchedIndex];
-                
-                const knightX = 100;
-                const knightY = canvas.height * 0.42 - 30;
-                state.projectiles.push(new Projectile(knightX, knightY, target.x, target.y));
-
-                createExplosion(target.x, target.y, '#8b5cf6');
-                playSoundEffect('hit');
-
-                state.score += 10 + state.combo * 2;
-                state.combo++;
-                if (state.combo > state.maxCombo) state.maxCombo = state.combo;
-
-                state.monsters.splice(matchedIndex, 1);
-                updateUI();
-            } else {
-                state.combo = 0;
-                playSoundEffect('miss');
-                updateUI();
-            }
-        }
-
-        function createExplosion(x, y, color) {
-            for (let i = 0; i < 12; i++) {
-                state.particles.push(new Particle(x, y, color));
-            }
-        }
-
-        function takeDamage() {
-            state.lives--;
-            state.combo = 0;
-            playSoundEffect('miss');
-            updateUI();
-
-            damageOverlay.style.opacity = '0.5';
-            setTimeout(() => { damageOverlay.style.opacity = '0'; }, 200);
-
-            if (state.lives <= 0) {
-                gameOver();
-            }
-        }
-
-        function updateUI() {
-            scoreText.innerText = state.score;
-            comboText.innerText = state.combo;
-
-            let heartsHTML = '';
-            for (let i = 0; i < CONFIG.maxLives; i++) {
-                if (i < state.lives) {
-                    heartsHTML += '<i class="fa-solid fa-heart"></i>';
-                } else {
-                    heartsHTML += '<i class="fa-regular fa-heart text-slate-600"></i>';
-                }
-            }
-            hpBar.innerHTML = heartsHTML;
-        }
-
-        function renderStage() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const groundY = canvas.height * 0.58;
-
-            // Background
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(0, 0, canvas.width, groundY);
-
-            // Ground Line
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-            ctx.lineTo(canvas.width, groundY);
-            ctx.stroke();
-
-            // Castle
-            const castleX = 30;
-            const castleY = groundY - 110;
-
-            ctx.fillStyle = '#cbd5e1';
-            ctx.fillRect(castleX, castleY + 30, 80, 80);
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(castleX + 25, castleY + 60, 30, 50);
-
-            // Roof
-            ctx.fillStyle = '#2563eb';
-            ctx.beginPath();
-            ctx.moveTo(castleX - 10, castleY + 30);
-            ctx.lineTo(castleX + 40, castleY - 10);
-            ctx.lineTo(castleX + 90, castleY + 30);
-            ctx.fill();
-
-            // Knight
-            const knightX = castleX + 40;
-            const knightY = castleY - 25;
-
-            ctx.fillStyle = '#38bdf8';
-            ctx.beginPath();
-            ctx.arc(knightX, knightY, 16, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#f59e0b';
-            ctx.fillRect(knightX - 8, knightY - 18, 16, 8);
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(knightX - 10, knightY - 4, 20, 6);
-
-            ctx.fillStyle = '#3b82f6';
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(knightX - 18, knightY + 2, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            // Render Monsters
-            const castleBoundary = castleX + 90;
-            for (let i = state.monsters.length - 1; i >= 0; i--) {
-                const m = state.monsters[i];
-                m.update();
-                m.draw(ctx);
-
-                if (m.x - m.width/2 <= castleBoundary) {
-                    createExplosion(m.x, m.y, '#ef4444');
-                    state.monsters.splice(i, 1);
-                    takeDamage();
-                }
-            }
-
-            // Render Projectiles
-            for (let i = state.projectiles.length - 1; i >= 0; i--) {
-                const p = state.projectiles[i];
-                p.update();
-                p.draw(ctx);
-                if (!p.alive) state.projectiles.splice(i, 1);
-            }
-
-            // Render Particles
-            for (let i = state.particles.length - 1; i >= 0; i--) {
-                const pt = state.particles[i];
-                pt.update();
-                pt.draw(ctx);
-                if (pt.alpha <= 0) state.particles.splice(i, 1);
-            }
-        }
-
-        function gameLoop(timestamp) {
-            if (state.isPlaying && !state.isPaused) {
-                if (timestamp - state.lastSpawnTime > state.spawnInterval) {
-                    spawnMonster();
-                    state.lastSpawnTime = timestamp;
-                    state.spawnInterval = Math.max(1000, state.spawnInterval * 0.995);
-                }
-
-                renderStage();
-            }
-            requestAnimationFrame(gameLoop);
-        }
-
-        function startGame() {
-            state.isPlaying = true;
-            state.isPaused = false;
-            state.score = 0;
-            state.combo = 0;
-            state.maxCombo = 0;
-            state.lives = CONFIG.maxLives;
-            state.monsters = [];
-            state.particles = [];
-            state.projectiles = [];
-            state.spawnInterval = CONFIG.spawnInterval;
-            state.lastSpawnTime = performance.now();
-
-            updateUI();
-            modalOverlay.classList.add('hidden');
-        }
-
-        function gameOver() {
-            state.isPlaying = false;
-            modalTitle.innerText = "遊戲結束！";
-            modalDesc.innerText = "城堡防線已被突破，再接再厲提升識譜速度吧！";
-            finalScore.innerText = state.score;
-            finalCombo.innerText = state.maxCombo;
-            modalScoreBoard.classList.remove('hidden');
-            btnStart.innerText = "重新開始";
-            modalOverlay.classList.remove('hidden');
-        }
-
-        /**
-         * Event Handlers & Control Binding
-         */
-        function openSettings() {
-            modalSelectClef.value = state.clefMode;
-            modalSelectRange.value = state.currentRange;
-            modalSelectLabel.value = state.labelMode;
-            volumeSlider.value = masterVolume * 100;
-            volumeVal.innerText = `${Math.round(masterVolume * 100)}%`;
-            
-            settingsModal.classList.remove('hidden');
-        }
-
-        function closeSettings() {
-            settingsModal.classList.add('hidden');
-        }
-
-        function saveSettings() {
-            state.clefMode = modalSelectClef.value;
-            state.currentRange = modalSelectRange.value;
-            state.labelMode = modalSelectLabel.value;
-            
-            const speedVal = modalSelectSpeed.value;
-            state.speedMultiplier = speedVal === 'slow' ? 0.7 : (speedVal === 'fast' ? 1.4 : 1.0);
-
-            // Sync with bottom selects
-            selectClef.value = state.clefMode;
-            selectRange.value = state.currentRange;
-            selectLabel.value = state.labelMode;
-
-            // Sync badges
-            const clefLabels = { 'treble': '🎼 高音譜號', 'bass': '𝄢 低音譜號', 'mixed': '🎼𝄢 混合譜號' };
-            clefBadge.innerText = clefLabels[state.clefMode];
-            rangeBadge.innerText = `${state.currentRange} (${state.currentRange === 'C3-C5' ? '雙八度' : '單八度'})`;
-
-            buildPiano();
-            closeSettings();
-        }
-
-        btnSettings.addEventListener('click', () => {
-            initAudio();
-            openSettings();
-        });
-
-        btnCloseSettings.addEventListener('click', closeSettings);
-        btnSaveSettings.addEventListener('click', saveSettings);
-
-        volumeSlider.addEventListener('input', (e) => {
-            const val = e.target.value / 100;
-            volumeVal.innerText = `${e.target.value}%`;
-            setVolume(val);
-        });
-
-        btnStart.addEventListener('click', () => {
-            initAudio();
-            startGame();
-        });
-
-        btnPause.addEventListener('click', () => {
-            if (!state.isPlaying) return;
-            state.isPaused = !state.isPaused;
-            btnPause.innerHTML = state.isPaused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
-        });
-
-        selectRange.addEventListener('change', (e) => {
-            state.currentRange = e.target.value;
-            rangeBadge.innerText = `${e.target.value} (${e.target.value === 'C3-C5' ? '雙八度' : '單八度'})`;
-            buildPiano();
-        });
-
-        selectLabel.addEventListener('change', (e) => {
-            state.labelMode = e.target.value;
-            buildPiano();
-        });
-
-        selectClef.addEventListener('change', (e) => {
-            state.clefMode = e.target.value;
-            const labels = { 'treble': '🎼 高音譜號', 'bass': '𝄢 低音譜號', 'mixed': '🎼𝄢 混合譜號' };
-            clefBadge.innerText = labels[e.target.value];
-        });
-
-        // Computer Keyboard Shortcuts
-        const KEY_MAP = {
-            'a': 'C4', 's': 'D4', 'd': 'E4', 'f': 'F4', 'g': 'G4', 'h': 'A4', 'j': 'B4', 'k': 'C5'
-        };
-
-        window.addEventListener('keydown', (e) => {
-            if (e.repeat) return;
-            const note = KEY_MAP[e.key.toLowerCase()];
-            if (note) {
-                initAudio();
-                triggerNoteAttack(note);
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            const note = KEY_MAP[e.key.toLowerCase()];
-            if (note) {
-                triggerNoteRelease(note);
-            }
-        });
-
-        // Initialize App
-        buildPiano();
-        setupWebMIDI();
-        requestAnimationFrame(gameLoop);
-    </script>
+          },
+          () => {
+            document.getElementById('midi-status').innerText = '⚡ 內建鍵盤';
+          }
+        );
+      }
+    }
+
+    function onMIDIMessage(event) {
+      const [status, note, velocity] = event.data;
+      // 144 為 Note On 指令
+      if (status === 144 && velocity > 0) {
+        handlePlayNote(note);
+      }
+    }
+
+    // --- 排行榜 LocalStorage 管理 ---
+    function getLeaderboard() {
+      return JSON.parse(localStorage.getItem('note_defense_leaderboard') || '[]');
+    }
+
+    function saveScore(name, scoreVal, comboVal) {
+      let list = getLeaderboard();
+      list.push({ name, score: scoreVal, combo: comboVal, date: new Date().toLocaleDateString() });
+      list.sort((a, b) => b.score - a.score);
+      list = list.slice(0, 10); // 只保留前 10 名
+      localStorage.setItem('note_defense_leaderboard', JSON.stringify(list));
+    }
+
+    function renderLeaderboard() {
+      const listEl = document.getElementById('leaderboard-items');
+      const list = getLeaderboard();
+      listEl.innerHTML = '';
+
+      if (list.length === 0) {
+        listEl.innerHTML = '<li style="text-align:center; color:#94a3b8; padding:12px;">尚無紀錄，快來搶佔第一名！</li>';
+        return;
+      }
+
+      list.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.className = 'leaderboard-item';
+        li.innerHTML = `
+          <span class="leaderboard-rank">#${index + 1}</span>
+          <span class="leaderboard-name">${item.name}</span>
+          <span class="leaderboard-score">${item.score} 分 (${item.combo} Combo)</span>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    // --- 遊戲流程控制 ---
+    function startGame() {
+      playerName = document.getElementById('player-name-input').value.trim() || '音符騎士';
+      document.getElementById('modal-start').classList.remove('active');
+
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      hp = 5;
+      monsters = [];
+      magicProjectiles = [];
+      gameStarted = true;
+      isPaused = false;
+      isGameOver = false;
+
+      updateUI();
+      renderPiano();
+    }
+
+    function endGame() {
+      isGameOver = true;
+      saveScore(playerName, score, maxCombo);
+      document.getElementById('final-score').innerText = score;
+      document.getElementById('final-combo').innerText = maxCombo;
+      document.getElementById('modal-gameover').classList.add('active');
+    }
+
+    // --- 事件監聽與控制連結 ---
+    document.getElementById('btn-start-game').addEventListener('click', startGame);
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      document.getElementById('modal-gameover').classList.remove('active');
+      startGame();
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      if (!gameStarted || isGameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('btn-pause').innerText = isPaused ? '▶️' : '⏸';
+    });
+
+    // 排行榜按鈕
+    document.getElementById('btn-leaderboard').addEventListener('click', () => {
+      renderLeaderboard();
+      document.getElementById('modal-leaderboard').classList.add('active');
+    });
+    document.getElementById('btn-close-leaderboard').addEventListener('click', () => {
+      document.getElementById('modal-leaderboard').classList.remove('active');
+    });
+    document.getElementById('btn-gameover-leaderboard').addEventListener('click', () => {
+      document.getElementById('modal-gameover').classList.remove('active');
+      renderLeaderboard();
+      document.getElementById('modal-leaderboard').classList.add('active');
+    });
+
+    // 設定按鈕
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      document.getElementById('modal-settings').classList.add('active');
+    });
+    document.getElementById('btn-save-settings').addEventListener('click', () => {
+      audio.volume = parseInt(document.getElementById('setting-volume').value) / 100;
+      speedMultiplier = parseFloat(document.getElementById('setting-speed').value);
+      document.getElementById('modal-settings').classList.remove('active');
+    });
+
+    // 下拉選單連動
+    document.getElementById('select-range').addEventListener('change', (e) => {
+      currentRange = e.target.value;
+      document.getElementById('range-badge').innerText = e.target.options[e.target.selectedIndex].text;
+      renderPiano();
+    });
+
+    document.getElementById('select-clef').addEventListener('change', (e) => {
+      currentClef = e.target.value;
+      document.getElementById('clef-badge').innerText = (currentClef === 'treble') ? '🎼 高音譜號' : '𝄢 低音譜號';
+      renderPiano();
+    });
+
+    document.getElementById('select-label').addEventListener('change', (e) => {
+      currentLabelMode = e.target.value;
+      renderPiano();
+    });
+
+    // 電腦鍵盤快捷鍵 (A, S, D, F, G, H, J, K)
+    const KEY_MAP = { 'a': 60, 's': 62, 'd': 64, 'f': 65, 'g': 67, 'h': 69, 'j': 71, 'k': 72 };
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (KEY_MAP[key]) {
+        handlePlayNote(KEY_MAP[key]);
+      }
+    });
+
+    // 初始化執行
+    window.onload = () => {
+      resizeCanvas();
+      renderPiano();
+      initMIDI();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
 </body>
 </html>
