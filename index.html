@@ -50,7 +50,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.85);
       padding: 8px 16px;
       border-radius: 20px;
       backdrop-filter: blur(8px);
@@ -158,7 +158,7 @@
       transition: background 0.05s, transform 0.05s;
       flex: 1;
       max-width: 55px;
-      min-width: 32px;
+      min-width: 28px;
     }
 
     .piano-key.white {
@@ -184,7 +184,7 @@
       border-radius: 0 0 4px 4px;
       height: 58%;
       max-width: 34px;
-      min-width: 20px;
+      min-width: 18px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.5);
     }
 
@@ -317,7 +317,7 @@
         <div class="form-group">
           <label for="clef-select">譜號選擇 (Clef)</label>
           <select id="clef-select">
-            <option value="treble">高音譜號 (Treble Clef)</option>
+            <option value="treble" selected>高音譜號 (Treble Clef)</option>
             <option value="bass">低音譜號 (Bass Clef)</option>
             <option value="both">雙手混合 (Treble & Bass)</option>
           </select>
@@ -326,8 +326,9 @@
         <div class="form-group">
           <label for="range-select">音域範圍 (Note Range)</label>
           <select id="range-select">
-            <option value="c4_g4">初學者: C4 - G4 (五音)</option>
-            <option value="c4_c5" selected>標準: C4 - C5 (單八度)</option>
+            <option value="auto" selected>✨ 自動匹配選定譜號</option>
+            <option value="c4_g4">初學者: C4 - G4 (5音)</option>
+            <option value="c4_c5">標準: C4 - C5 (高音單八度)</option>
             <option value="g2_c4">低音: G2 - C4 (低音譜表)</option>
             <option value="c3_c5">進階: C3 - C5 (雙八度)</option>
           </select>
@@ -336,9 +337,9 @@
         <div class="form-group">
           <label for="speed-select">移動速度 (Speed)</label>
           <select id="speed-select">
-            <option value="1">慢速 (Easy)</option>
+            <option value="0.8">慢速 (Easy)</option>
             <option value="1.5" selected>中速 (Normal)</option>
-            <option value="2.2">快速 (Hard)</option>
+            <option value="2.5">快速 (Hard)</option>
           </select>
         </div>
 
@@ -383,23 +384,20 @@
       }
     }
 
-    // --- Frequency Map & Pitch Index ---
+    // Frequency Map
     const NOTE_FREQS = {
-      'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
-      'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-      'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-      'C5': 523.25
+      'E2': 82.41, 'F2': 87.31, 'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
+      'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+      'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+      'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99
     };
 
+    // Continuous Pitch Index for Staff Rendering
     const NOTE_PITCH_INDEX = {
-      'G2': 10, 'A2': 11, 'B2': 12,
-      'C3': 13, 'D3': 14, 'E3': 15, 'F3': 16, 'G3': 17, 'A3': 18, 'B3': 19,
-      'C4': 20, 'D4': 21, 'E4': 22, 'F4': 23, 'G4': 24, 'A4': 25, 'B4': 26,
-      'C5': 27
-    };
-
-    const KEYBOARD_MAP = {
-      'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4', 'd': 'E4', 'f': 'F4', 't': 'F#4', 'g': 'G4', 'y': 'G#4', 'h': 'A4', 'u': 'A#4', 'j': 'B4', 'k': 'C5'
+      'E2': 5, 'F2': 6, 'G2': 7, 'A2': 8, 'B2': 9,
+      'C3': 10, 'D3': 11, 'E3': 12, 'F3': 13, 'G3': 14, 'A3': 15, 'B3': 16,
+      'C4': 17, 'D4': 18, 'E4': 19, 'F4': 20, 'G4': 21, 'A4': 22, 'B4': 23,
+      'C5': 24, 'D5': 25, 'E5': 26, 'F5': 27, 'G5': 28
     };
 
     // --- Main Game Engine ---
@@ -418,7 +416,7 @@
 
         this.settings = {
           clef: 'treble',
-          range: 'c4_c5',
+          range: 'auto',
           speed: 1.5
         };
 
@@ -450,9 +448,9 @@
           this.showModal('遊戲設定');
         });
 
-        window.addEventListener('keydown', (e) => {
-          const note = KEYBOARD_MAP[e.key.toLowerCase()];
-          if (note) this.handleKeyPress(note);
+        // Dynamic change of range on clef change
+        document.getElementById('clef-select').addEventListener('change', () => {
+          this.readSettings();
         });
 
         this.initMIDI();
@@ -466,13 +464,24 @@
       }
 
       getNotePool() {
-        const pools = {
-          'c4_g4': ['C4', 'D4', 'E4', 'F4', 'G4'],
-          'c4_c5': ['C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4', 'A4', 'A#4', 'B4', 'C5'],
-          'g2_c4': ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'],
-          'c3_c5': ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
-        };
-        return pools[this.settings.range] || pools['c4_c5'];
+        if (this.settings.range !== 'auto') {
+          const pools = {
+            'c4_g4': ['C4', 'D4', 'E4', 'F4', 'G4'],
+            'c4_c5': ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'],
+            'g2_c4': ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'],
+            'c3_c5': ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
+          };
+          return pools[this.settings.range] || pools['c4_c5'];
+        }
+
+        // Auto match clef
+        if (this.settings.clef === 'treble') {
+          return ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+        } else if (this.settings.clef === 'bass') {
+          return ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4'];
+        } else { // Both
+          return ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+        }
       }
 
       setupKeyboardUI() {
@@ -484,8 +493,7 @@
 
         notes.forEach(note => {
           const key = document.createElement('div');
-          const isAccidental = note.includes('#');
-          key.className = `piano-key ${isAccidental ? 'black' : 'white'}`;
+          key.className = 'piano-key white';
           key.innerText = note;
           key.dataset.note = note;
 
@@ -518,7 +526,7 @@
 
       handleMIDIMessage(msg) {
         const [command, noteNumber, velocity] = msg.data;
-        if (command === 144 && velocity > 0) { // Note ON
+        if (command === 144 && velocity > 0) {
           const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
           const noteName = noteNames[noteNumber % 12] + (Math.floor(noteNumber / 12) - 1);
           this.handleKeyPress(noteName);
@@ -563,12 +571,14 @@
       }
 
       spawnCard() {
-        const pool = this.getNotePool().filter(n => !n.includes('#')); // 白鍵為主
+        const pool = this.getNotePool();
         const note = pool[Math.floor(Math.random() * pool.length)];
 
         let clef = this.settings.clef;
         if (clef === 'both') {
-          clef = Math.random() > 0.5 ? 'treble' : 'bass';
+          // Automatic clef selection according to note pitch
+          const pitch = NOTE_PITCH_INDEX[note];
+          clef = pitch >= 17 ? 'treble' : 'bass';
         }
 
         this.cards.push({
@@ -576,7 +586,7 @@
           y: this.canvas.height * 0.45,
           note: note,
           clef: clef,
-          speed: this.settings.speed * 1.5,
+          speed: this.settings.speed * 1.6,
           isBoss: Math.random() < 0.15
         });
       }
@@ -617,12 +627,12 @@
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw Background Scene
+        // Draw Background
         this.drawBackground();
 
         // Spawn Cards
         this.spawnTimer++;
-        if (this.spawnTimer > 110 / this.settings.speed) {
+        if (this.spawnTimer > Math.max(40, 120 / this.settings.speed)) {
           this.spawnCard();
           this.spawnTimer = 0;
         }
@@ -701,7 +711,7 @@
         this.ctx.lineTo(castleX + 100, castleY + 50);
         this.ctx.fill();
 
-        // Princess / Hero Character
+        // Hero Character
         this.ctx.fillStyle = '#ec4899';
         this.ctx.beginPath();
         this.ctx.arc(castleX + 45, castleY - 20, 16, 0, Math.PI * 2);
@@ -714,7 +724,7 @@
 
       drawCardAndMonster(card) {
         const w = 100;
-        const h = 130;
+        const h = 135;
         const x = card.x - w / 2;
         const y = card.y - h / 2;
 
@@ -727,7 +737,7 @@
         this.ctx.fill();
         this.ctx.shadowBlur = 0;
 
-        // Staff Lines (5 lines)
+        // Staff Lines (5 clean lines without redundant background staff)
         this.ctx.strokeStyle = '#1e293b';
         this.ctx.lineWidth = 1.5;
         const staffTop = y + 36;
@@ -741,28 +751,45 @@
           this.ctx.stroke();
         }
 
-        // Clef Label
+        // Clean Clef Symbol Rendering
         this.ctx.fillStyle = '#0f172a';
-        this.ctx.font = 'bold 22px serif';
-        const clefSymbol = card.clef === 'treble' ? '🎼' : '𝄢';
-        this.ctx.fillText(clefSymbol, x + 12, staffTop + 32);
+        this.ctx.font = '26px sans-serif';
+        if (card.clef === 'treble') {
+          this.ctx.fillText('🎼', x + 8, staffTop + 36);
+        } else {
+          this.ctx.fillText('𝄢', x + 10, staffTop + 28);
+        }
 
-        // Pitch Y Offset Calculation
-        const pitchIndex = NOTE_PITCH_INDEX[card.note] || 20;
-        const baseIndex = card.clef === 'treble' ? 20 : 14;
+        // Pitch Calculation Reference
+        // Treble: E4 is line 1 (index 19)
+        // Bass: G2 is line 1 (index 7)
+        const pitchIndex = NOTE_PITCH_INDEX[card.note] || 17;
+        const baseIndex = card.clef === 'treble' ? 19 : 7;
         const stepOffset = pitchIndex - baseIndex;
 
         const noteY = staffTop + 44 - (stepOffset * (lineSpacing / 2));
-        const noteX = x + w / 2 + 10;
+        const noteX = x + w / 2 + 12;
 
-        // Short Ledger Line
-        if (stepOffset <= 0 || stepOffset >= 12) {
-          this.ctx.strokeStyle = '#334155';
-          this.ctx.lineWidth = 1.5;
-          this.ctx.beginPath();
-          this.ctx.moveTo(noteX - 10, noteY);
-          this.ctx.lineTo(noteX + 10, noteY);
-          this.ctx.stroke();
+        // Ledger Line (Short & Exact)
+        if (stepOffset < 0 || stepOffset > 8) {
+          const ledgerStart = Math.min(0, stepOffset);
+          const ledgerEnd = Math.max(8, stepOffset);
+
+          for (let s = ledgerStart; s <= ledgerEnd; s++) {
+            if (s < 0 && s % 2 === 0) {
+              const ly = staffTop + 44 - (s * (lineSpacing / 2));
+              this.ctx.beginPath();
+              this.ctx.moveTo(noteX - 10, ly);
+              this.ctx.lineTo(noteX + 10, ly);
+              this.ctx.stroke();
+            } else if (s > 8 && s % 2 === 0) {
+              const ly = staffTop + 44 - (s * (lineSpacing / 2));
+              this.ctx.beginPath();
+              this.ctx.moveTo(noteX - 10, ly);
+              this.ctx.lineTo(noteX + 10, ly);
+              this.ctx.stroke();
+            }
+          }
         }
 
         // Note Head
@@ -773,11 +800,16 @@
 
         // Note Stem
         this.ctx.beginPath();
-        this.ctx.moveTo(noteX + 4.5, noteY);
-        this.ctx.lineTo(noteX + 4.5, noteY - 22);
+        if (stepOffset >= 4) {
+          this.ctx.moveTo(noteX - 4.5, noteY);
+          this.ctx.lineTo(noteX - 4.5, noteY + 22);
+        } else {
+          this.ctx.moveTo(noteX + 4.5, noteY);
+          this.ctx.lineTo(noteX + 4.5, noteY - 22);
+        }
         this.ctx.stroke();
 
-        // Monster/Boss at bottom of card
+        // Monster/Boss
         this.ctx.fillStyle = card.isBoss ? '#7c3aed' : '#ea580c';
         this.ctx.beginPath();
         this.ctx.arc(x + w / 2, y + h + 14, card.isBoss ? 18 : 12, 0, Math.PI * 2);
