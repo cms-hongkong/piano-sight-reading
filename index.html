@@ -1,855 +1,1134 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>鋼琴視譜冒險 - Sight-Reading Piano Adventure</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>音符大作戰：城堡守衛戰 - Note Defense</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Font and Touch Prevention */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #0d1117;
+            overflow: hidden;
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b0f19;
-      color: #ffffff;
-      overflow: hidden;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+        /* Responsive Piano Styling */
+        .piano-container {
+            display: flex;
+            position: relative;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+        }
 
-    #game-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 100%);
-    }
+        .white-key {
+            flex: 1;
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+            border: 1px solid #999;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.2);
+            transition: background 0.05s ease, transform 0.05s ease;
+            z-index: 1;
+        }
 
-    /* Top HUD UI */
-    #hud {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 10;
-      pointer-events: none;
-    }
+        .white-key.active, .white-key:active {
+            background: linear-gradient(to bottom, #e0e0e0 0%, #cbd5e1 100%);
+            transform: translateY(2px);
+            box-shadow: inset 0 -2px 5px rgba(0,0,0,0.2);
+        }
 
-    .hud-panel {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(15, 23, 42, 0.85);
-      padding: 8px 16px;
-      border-radius: 20px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      pointer-events: auto;
-    }
+        .black-key {
+            position: absolute;
+            height: 60%;
+            background: linear-gradient(to bottom, #2d3748 0%, #000000 100%);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            cursor: pointer;
+            z-index: 2;
+            box-shadow: inset 0 -3px 6px rgba(255,255,255,0.2), 2px 3px 5px rgba(0,0,0,0.5);
+            transition: background 0.05s ease, transform 0.05s ease;
+        }
 
-    .btn-icon {
-      background: #334155;
-      border: none;
-      color: white;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      transition: all 0.2s;
-    }
+        .black-key.active, .black-key:active {
+            background: linear-gradient(to bottom, #1a202c 0%, #3182ce 100%);
+            transform: translateY(2px);
+        }
 
-    .btn-icon:hover {
-      background: #475569;
-      transform: scale(1.05);
-    }
-
-    .lives-box {
-      font-size: 20px;
-      letter-spacing: 2px;
-    }
-
-    .score-title {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-right: 4px;
-    }
-
-    .score-num {
-      font-size: 22px;
-      font-weight: 800;
-      color: #fbbf24;
-    }
-
-    /* Stage Canvas Container */
-    #stage-container {
-      position: relative;
-      flex: 1;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    #game-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    /* Piano Section */
-    #piano-container {
-      position: relative;
-      width: 100%;
-      height: 220px;
-      background: #090d16;
-      border-top: 3px solid #334155;
-      display: flex;
-      flex-direction: column;
-      z-index: 5;
-    }
-
-    #piano-bar {
-      height: 32px;
-      background: #1e293b;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      font-size: 13px;
-      color: #cbd5e1;
-      font-weight: bold;
-    }
-
-    #keys-wrapper {
-      position: relative;
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      padding: 0 4px 6px 4px;
-      overflow-x: auto;
-    }
-
-    .piano-key {
-      position: relative;
-      cursor: pointer;
-      border-radius: 0 0 6px 6px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding-bottom: 8px;
-      font-weight: 700;
-      font-size: 12px;
-      box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2);
-      transition: background 0.05s, transform 0.05s;
-      flex: 1;
-      max-width: 48px;
-      min-width: 22px;
-    }
-
-    .piano-key.white {
-      background: linear-gradient(to bottom, #ffffff 0%, #e2e8f0 100%);
-      color: #0f172a;
-      border: 1px solid #cbd5e1;
-      border-top: none;
-      z-index: 1;
-    }
-
-    .piano-key.white.active {
-      background: #38bdf8 !important;
-      color: #ffffff;
-      transform: translateY(3px);
-    }
-
-    .piano-key.black {
-      background: linear-gradient(to bottom, #334155 0%, #0f172a 100%);
-      color: #f8fafc;
-      z-index: 2;
-      margin-left: -11px;
-      margin-right: -11px;
-      border-radius: 0 0 4px 4px;
-      height: 58%;
-      max-width: 28px;
-      min-width: 14px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-    }
-
-    .piano-key.black.active {
-      background: #0284c7 !important;
-      transform: translateY(3px);
-    }
-
-    /* Modal Overlay */
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(11, 15, 25, 0.88);
-      backdrop-filter: blur(8px);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-    }
-
-    .modal {
-      background: #1e293b;
-      border: 1px solid #475569;
-      border-radius: 16px;
-      padding: 24px 28px;
-      width: 90%;
-      max-width: 440px;
-      text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
-    }
-
-    .modal h2 {
-      margin-bottom: 16px;
-      color: #f8fafc;
-      font-size: 22px;
-    }
-
-    .form-group {
-      margin-bottom: 14px;
-      text-align: left;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      color: #94a3b8;
-      margin-bottom: 6px;
-    }
-
-    .form-group select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      color: white;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-      box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-    }
-
-    .hidden {
-      display: none !important;
-    }
-  </style>
+        /* Prevent scroll pull down on iOS */
+        html, body {
+            position: fixed;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
-<body>
+<body class="bg-slate-950 text-white flex flex-col h-screen select-none">
 
-  <div id="game-container">
-    <!-- Top HUD -->
-    <div id="hud">
-      <div class="hud-panel">
-        <button id="btn-pause" class="btn-icon">⏸</button>
-        <button id="btn-settings" class="btn-icon">⚙️</button>
-      </div>
-
-      <div class="hud-panel">
-        <div id="lives-display" class="lives-box">❤️❤️❤️❤️❤️</div>
-      </div>
-
-      <div class="hud-panel">
-        <div>
-          <span class="score-title">SCORE</span>
-          <span id="score-display" class="score-num">0</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Stage Canvas -->
-    <div id="stage-container">
-      <canvas id="game-canvas"></canvas>
-    </div>
-
-    <!-- Piano Key Controls -->
-    <div id="piano-container">
-      <div id="piano-bar">
-        <span id="range-info">琴鍵範圍: C4 - C5</span>
-        <span id="midi-status">MIDI: 未連接</span>
-      </div>
-      <div id="keys-wrapper">
-        <!-- Piano keys generated dynamically -->
-      </div>
-    </div>
-
-    <!-- Start & Settings Modal -->
-    <div id="modal-overlay" class="overlay">
-      <div class="modal">
-        <h2 id="modal-title">鋼琴視譜冒險</h2>
-        
-        <div class="form-group">
-          <label for="clef-select">譜號模式 (Clef Mode)</label>
-          <select id="clef-select">
-            <option value="treble" selected>高音譜號 (Treble Clef)</option>
-            <option value="bass">低音譜號 (Bass Clef)</option>
-            <option value="both">雙手混合 (Treble & Bass)</option>
-          </select>
+    <!-- Top Header Bar -->
+    <header class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-3 md:px-6 z-20">
+        <!-- Left: Pause & Settings & HP -->
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <button id="btn-pause" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-amber-400 font-bold transition">
+                <i class="fa-solid fa-pause"></i>
+            </button>
+            <button id="btn-settings" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <!-- Heart Bar -->
+            <div id="hp-bar" class="flex space-x-1 text-red-500 text-lg md:text-xl">
+                <i class="fa-solid fa-heart"></i>
+                <i class="fa-solid fa-heart"></i>
+                <i class="fa-solid fa-heart"></i>
+                <i class="fa-solid fa-heart"></i>
+                <i class="fa-solid fa-heart"></i>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label for="speed-select">怪物速度 (Speed)</label>
-          <select id="speed-select">
-            <option value="0.6">慢速 (Easy)</option>
-            <option value="1.2" selected>中速 (Normal)</option>
-            <option value="2.2">快速 (Hard)</option>
-          </select>
+        <!-- Center: Clef & Mode Indicator -->
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center space-x-2 text-xs md:text-sm">
+            <span id="clef-badge" class="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-xs">🎼 高音譜號</span>
+            <span id="range-badge" class="text-amber-300 font-semibold">C4 - C5 (單八度)</span>
         </div>
 
-        <button id="btn-start" class="btn-primary">開始遊戲</button>
-      </div>
+        <!-- Right: MIDI Status & Score / Combo -->
+        <div class="flex items-center space-x-3 md:space-x-6">
+            <div id="midi-status" class="hidden sm:flex items-center space-x-1 text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 border border-slate-700">
+                <i class="fa-plug-circle-xmark text-amber-500"></i>
+                <span id="midi-text">MIDI 未連線</span>
+            </div>
+
+            <div class="flex items-center space-x-3 text-right">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">SCORE</div>
+                    <div id="score-text" class="text-base md:text-lg font-bold text-amber-400 leading-none">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">COMBO</div>
+                    <div id="combo-text" class="text-base md:text-lg font-bold text-emerald-400 leading-none">0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Stage Area (Canvas) -->
+    <main class="flex-1 relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+        <div id="damage-overlay" class="pointer-events-none absolute inset-0 bg-red-600 opacity-0 transition-opacity duration-150"></div>
+    </main>
+
+    <!-- Bottom Control Bar -->
+    <div class="bg-slate-900 border-t border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between text-xs text-slate-300 z-20 gap-2">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-sliders text-amber-400"></i>
+            <span class="font-medium text-amber-300">琴鍵範圍：</span>
+            <select id="select-range" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
+                <option value="C4-C5">C4 - C5 (中央八度)</option>
+                <option value="C3-C4">C3 - C4 (低音八度)</option>
+                <option value="C3-C5">C3 - C5 (雙八度)</option>
+            </select>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-medium text-amber-300">琴鍵標籤：</span>
+                <select id="select-label" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
+                    <option value="CDEFGAB">CDEFGAB</option>
+                    <option value="DOREMI">Do Re Mi</option>
+                    <option value="NONE">隱藏</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <span class="font-medium text-amber-300">譜號：</span>
+                <select id="select-clef" class="bg-slate-800 border border-slate-700 text-white rounded px-2 py-0.5 focus:outline-none focus:border-amber-400">
+                    <option value="treble">高音譜號</option>
+                    <option value="bass">低音譜號</option>
+                    <option value="mixed">混合譜號</option>
+                </select>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    // --- Audio Synth (Web Audio API) ---
-    class PianoSynth {
-      constructor() {
-        this.ctx = null;
-      }
+    <!-- Interactive On-Screen Piano -->
+    <div class="h-36 md:h-44 bg-slate-950 p-2 relative border-t-2 border-amber-500/50 shadow-2xl z-20">
+        <div id="piano" class="piano-container">
+            <!-- Piano Keys render dynamically via JavaScript -->
+        </div>
+    </div>
 
-      init() {
-        if (!this.ctx) {
-          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-      }
+    <!-- Start / Game Over Modal -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+            
+            <div class="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl border border-amber-500/30">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            
+            <h2 id="modal-title" class="text-2xl font-bold text-white mb-2">音符大作戰：城堡守衛戰</h2>
+            <p id="modal-desc" class="text-slate-400 text-sm mb-6">看準五線譜音符，彈奏對應鍵盤發射樂理魔法，守護你的城堡吧！</p>
 
-      playNote(freq) {
-        if (!this.ctx) return;
-        
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+            <div id="modal-score-board" class="hidden bg-slate-800/80 rounded-xl p-4 mb-6 border border-slate-700 flex justify-around">
+                <div>
+                    <div class="text-xs text-slate-400">最終得分</div>
+                    <div id="final-score" class="text-2xl font-bold text-amber-400">0</div>
+                </div>
+                <div class="border-r border-slate-700"></div>
+                <div>
+                    <div class="text-xs text-slate-400">最大連擊</div>
+                    <div id="final-combo" class="text-2xl font-bold text-emerald-400">0</div>
+                </div>
+            </div>
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            <button id="btn-start" class="w-full py-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition transform active:scale-95 text-base">
+                開始遊戲
+            </button>
+        </div>
+    </div>
 
-        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-amber-400"></i> 遊戲設定
+                </h3>
+                <button id="btn-close-settings" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
+            <div class="space-y-4 text-sm text-slate-200">
+                <!-- Clef Selection -->
+                <div>
+                    <label class="block text-slate-400 mb-1">譜號模式</label>
+                    <select id="modal-select-clef" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        <option value="treble">🎼 高音譜號 (Treble Clef)</option>
+                        <option value="bass">𝄢 低音譜號 (Bass Clef)</option>
+                        <option value="mixed">🎼𝄢 混合譜號 (Mixed)</option>
+                    </select>
+                </div>
 
-        osc.start();
-        osc.stop(this.ctx.currentTime + 1.2);
-      }
-    }
+                <!-- Range Selection -->
+                <div>
+                    <label class="block text-slate-400 mb-1">琴鍵音域</label>
+                    <select id="modal-select-range" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        <option value="C4-C5">C4 - C5 (中央單八度)</option>
+                        <option value="C3-C4">C3 - C4 (低音單八度)</option>
+                        <option value="C3-C5">C3 - C5 (雙八度)</option>
+                    </select>
+                </div>
 
-    // Comprehensive Frequency Map
-    const NOTE_FREQS = {
-      'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
-      'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-      'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-      'C5': 523.25
-    };
+                <!-- Label Selection -->
+                <div>
+                    <label class="block text-slate-400 mb-1">琴鍵標籤</label>
+                    <select id="modal-select-label" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        <option value="CDEFGAB">CDEFGAB (音名)</option>
+                        <option value="DOREMI">Do Re Mi (唱名)</option>
+                        <option value="NONE">無標籤 (隱藏)</option>
+                    </select>
+                </div>
 
-    // Continuous Pitch Index for Staff Rendering
-    const NOTE_PITCH_INDEX = {
-      'G2': 7, 'A2': 8, 'B2': 9,
-      'C3': 10, 'D3': 11, 'E3': 12, 'F3': 13, 'G3': 14, 'A3': 15, 'B3': 16,
-      'C4': 17, 'D4': 18, 'E4': 19, 'F4': 20, 'G4': 21, 'A4': 22, 'B4': 23,
-      'C5': 24
-    };
+                <!-- Game Speed -->
+                <div>
+                    <label class="block text-slate-400 mb-1">怪物速度</label>
+                    <select id="modal-select-speed" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        <option value="slow">慢速 (新手推薦)</option>
+                        <option value="normal" selected>一般 (標準挑戰)</option>
+                        <option value="fast">快速 (高難度)</option>
+                    </select>
+                </div>
 
-    // Note Pools per Mode
-    const POOLS = {
-      treble: ['C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4', 'A4', 'A#4', 'B4', 'C5'],
-      bass: ['G2', 'G#2', 'A2', 'A#2', 'B2', 'C3', 'C#3', 'D3', 'D#3', 'E3', 'F3', 'F#3', 'G3', 'G#3', 'A3', 'A#3', 'B3', 'C4'],
-      both: ['G2', 'A2', 'B2', 'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
-    };
+                <!-- Audio Volume -->
+                <div>
+                    <div class="flex justify-between text-slate-400 mb-1">
+                        <span>主音音量</span>
+                        <span id="volume-val">80%</span>
+                    </div>
+                    <input id="volume-slider" type="range" min="0" max="100" value="80" class="w-full accent-amber-500 cursor-pointer">
+                </div>
+            </div>
 
-    // --- Main Game Engine ---
-    class Game {
-      constructor() {
-        this.canvas = document.getElementById('game-canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.synth = new PianoSynth();
+            <div class="mt-6 pt-3 border-t border-slate-800 flex justify-end">
+                <button id="btn-save-settings" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition active:scale-95">
+                    儲存並關閉
+                </button>
+            </div>
+        </div>
+    </div>
 
-        this.score = 0;
-        this.lives = 5;
-        this.isRunning = false;
-        this.cards = [];
-        this.effects = [];
-        this.spawnTimer = 0;
-
-        this.settings = {
-          clef: 'treble',
-          speed: 1.2
+    <!-- JavaScript Game Logic -->
+    <script>
+        /**
+         * Game Engine & Configuration
+         */
+        const CONFIG = {
+            baseSpeed: 1.2,
+            spawnInterval: 2600, // ms
+            maxLives: 5,
+            noteLabels: {
+                'CDEFGAB': { 'C':'C', 'D':'D', 'E':'E', 'F':'F', 'G':'G', 'A':'A', 'B':'B' },
+                'DOREMI': { 'C':'Do', 'D':'Re', 'E':'Mi', 'F':'Fa', 'G':'Sol', 'A':'La', 'B':'Si' },
+                'NONE': { 'C':'', 'D':'', 'E':'', 'F':'', 'G':'', 'A':'', 'B':'' }
+            }
         };
 
-        this.initCanvasSize();
-        this.bindEvents();
-        this.setupKeyboardUI();
-      }
+        // Pitch definitions: staffOffset=0 is Middle Line (Line 3).
+        // Negative staffOffset is ABOVE middle line, Positive is BELOW middle line.
+        const PITCH_DATA = {
+            // Bass Clef Pitch Data (Middle Line = Line 3 = D3 = staffOffset 0)
+            'C3': { midi: 48, staffOffset: 1, clef: 'bass' },
+            'D3': { midi: 50, staffOffset: 0, clef: 'bass' },  // Middle Line
+            'E3': { midi: 52, staffOffset: -1, clef: 'bass' },
+            'F3': { midi: 53, staffOffset: -2, clef: 'bass' },
+            'G3': { midi: 55, staffOffset: -3, clef: 'bass' },
+            'A3': { midi: 57, staffOffset: -4, clef: 'bass' },
+            'B3': { midi: 59, staffOffset: -5, clef: 'bass' },
 
-      initCanvasSize() {
-        const container = document.getElementById('stage-container');
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
-      }
+            // Treble Clef Pitch Data (Middle Line = Line 3 = B4 = staffOffset 0)
+            'C4': { midi: 60, staffOffset: 6, clef: 'treble' },  // Ledger Line below
+            'D4': { midi: 62, staffOffset: 5, clef: 'treble' },  // Space below line 1
+            'E4': { midi: 64, staffOffset: 4, clef: 'treble' },  // Line 1
+            'F4': { midi: 65, staffOffset: 3, clef: 'treble' },  // Space 1
+            'G4': { midi: 67, staffOffset: 2, clef: 'treble' },  // Line 2
+            'A4': { midi: 69, staffOffset: 1, clef: 'treble' },  // Space 2
+            'B4': { midi: 71, staffOffset: 0, clef: 'treble' },  // Line 3 (Middle Line)
+            'C5': { midi: 72, staffOffset: -1, clef: 'treble' }, // Space 3
+            'D5': { midi: 74, staffOffset: -2, clef: 'treble' }, // Line 4
+            'E5': { midi: 76, staffOffset: -3, clef: 'treble' }, // Space 4
+            'F5': { midi: 77, staffOffset: -4, clef: 'treble' }, // Line 5
+            'G5': { midi: 79, staffOffset: -5, clef: 'treble' }, // Space above
+            'A5': { midi: 81, staffOffset: -6, clef: 'treble' }, // Ledger line above
+            'B5': { midi: 83, staffOffset: -7, clef: 'treble' },
+            'C6': { midi: 84, staffOffset: -8, clef: 'treble' }
+        };
 
-      bindEvents() {
-        window.addEventListener('resize', () => this.initCanvasSize());
+        // Audio Context (Synthesizer)
+        let audioCtx = null;
+        let masterGain = null;
+        let masterVolume = 0.8;
 
-        document.getElementById('btn-start').addEventListener('click', () => {
-          this.synth.init();
-          this.readSettings();
-          this.startGame();
-        });
-
-        document.getElementById('btn-pause').addEventListener('click', () => {
-          this.togglePause();
-        });
-
-        document.getElementById('btn-settings').addEventListener('click', () => {
-          this.showModal('遊戲設定');
-        });
-
-        document.getElementById('clef-select').addEventListener('change', () => {
-          this.readSettings();
-        });
-
-        document.getElementById('speed-select').addEventListener('change', () => {
-          this.readSettings();
-        });
-
-        this.initMIDI();
-      }
-
-      readSettings() {
-        this.settings.clef = document.getElementById('clef-select').value;
-        this.settings.speed = parseFloat(document.getElementById('speed-select').value);
-        this.setupKeyboardUI();
-      }
-
-      getNotePool() {
-        return POOLS[this.settings.clef] || POOLS.treble;
-      }
-
-      setupKeyboardUI() {
-        const wrapper = document.getElementById('keys-wrapper');
-        wrapper.innerHTML = '';
-        const notes = this.getNotePool();
-
-        document.getElementById('range-info').innerText = `琴鍵範圍: ${notes[0]} - ${notes[notes.length - 1]}`;
-
-        notes.forEach(note => {
-          const key = document.createElement('div');
-          const isAccidental = note.includes('#');
-          key.className = `piano-key ${isAccidental ? 'black' : 'white'}`;
-          key.innerText = note;
-          key.dataset.note = note;
-
-          key.addEventListener('mousedown', () => this.handleKeyPress(note));
-          key.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.handleKeyPress(note);
-          });
-
-          wrapper.appendChild(key);
-        });
-      }
-
-      initMIDI() {
-        if (navigator.requestMIDIAccess) {
-          navigator.requestMIDIAccess().then(
-            (midi) => {
-              document.getElementById('midi-status').innerText = 'MIDI: 已連接';
-              const inputs = midi.inputs.values();
-              for (let input of inputs) {
-                input.onmidimessage = (msg) => this.handleMIDIMessage(msg);
-              }
-            },
-            () => {
-              document.getElementById('midi-status').innerText = 'MIDI: 未存取';
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
+                masterGain.connect(audioCtx.destination);
             }
-          );
-        }
-      }
-
-      handleMIDIMessage(msg) {
-        const [command, noteNumber, velocity] = msg.data;
-        if (command === 144 && velocity > 0) {
-          const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-          const noteName = noteNames[noteNumber % 12] + (Math.floor(noteNumber / 12) - 1);
-          this.handleKeyPress(noteName);
-        }
-      }
-
-      handleKeyPress(note) {
-        if (!this.isRunning) return;
-
-        if (NOTE_FREQS[note]) {
-          this.synth.playNote(NOTE_FREQS[note]);
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
-        const keyEl = document.querySelector(`.piano-key[data-note="${note}"]`);
-        if (keyEl) {
-          keyEl.classList.add('active');
-          setTimeout(() => keyEl.classList.remove('active'), 150);
+        function setVolume(val) {
+            masterVolume = val;
+            if (masterGain && audioCtx) {
+                masterGain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
+            }
         }
 
-        for (let i = 0; i < this.cards.length; i++) {
-          if (this.cards[i].note === note) {
-            this.score += this.cards[i].isBoss ? 30 : 10;
-            this.updateHUD();
-            this.createHitEffect(this.cards[i].x, this.cards[i].y);
-            this.cards.splice(i, 1);
-            break;
-          }
-        }
-      }
+        function playPianoTone(freq) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
 
-      createHitEffect(x, y) {
-        for (let i = 0; i < 15; i++) {
-          this.effects.push({
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 10,
-            vy: (Math.random() - 0.5) * 10,
-            life: 1.0,
-            color: `hsl(${Math.random() * 360}, 100%, 75%)`
-          });
-        }
-      }
+            osc.connect(gain);
+            gain.connect(masterGain || audioCtx.destination);
 
-      spawnCard() {
-        const pool = this.getNotePool().filter(n => !n.includes('#'));
-        const note = pool[Math.floor(Math.random() * pool.length)];
-
-        let clef = this.settings.clef;
-        if (clef === 'both') {
-          const pitch = NOTE_PITCH_INDEX[note];
-          clef = pitch >= 17 ? 'treble' : 'bass';
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.2);
         }
 
-        this.cards.push({
-          x: this.canvas.width + 80,
-          y: this.canvas.height * 0.45,
-          note: note,
-          clef: clef,
-          speed: this.settings.speed * 1.5,
-          isBoss: Math.random() < 0.15
+        function playSoundEffect(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(masterGain || audioCtx.destination);
+
+            if (type === 'hit') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'miss') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        function midiToFreq(midi) {
+            return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        /**
+         * Game State Management
+         */
+        const state = {
+            isPlaying: false,
+            isPaused: false,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            lives: CONFIG.maxLives,
+            currentRange: 'C4-C5',
+            labelMode: 'CDEFGAB',
+            clefMode: 'treble',
+            speedMultiplier: 1.0,
+            monsters: [],
+            particles: [],
+            projectiles: [],
+            lastSpawnTime: 0,
+            spawnInterval: CONFIG.spawnInterval,
+            activeKeys: new Set()
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const pianoContainer = document.getElementById('piano');
+        const hpBar = document.getElementById('hp-bar');
+        const scoreText = document.getElementById('score-text');
+        const comboText = document.getElementById('combo-text');
+        const damageOverlay = document.getElementById('damage-overlay');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDesc = document.getElementById('modal-desc');
+        const modalScoreBoard = document.getElementById('modal-score-board');
+        const finalScore = document.getElementById('final-score');
+        const finalCombo = document.getElementById('final-combo');
+        const btnStart = document.getElementById('btn-start');
+        const btnPause = document.getElementById('btn-pause');
+        const btnSettings = document.getElementById('btn-settings');
+        const settingsModal = document.getElementById('settings-modal');
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        const btnSaveSettings = document.getElementById('btn-save-settings');
+
+        const selectRange = document.getElementById('select-range');
+        const selectLabel = document.getElementById('select-label');
+        const selectClef = document.getElementById('select-clef');
+        const rangeBadge = document.getElementById('range-badge');
+        const clefBadge = document.getElementById('clef-badge');
+
+        const modalSelectClef = document.getElementById('modal-select-clef');
+        const modalSelectRange = document.getElementById('modal-select-range');
+        const modalSelectLabel = document.getElementById('modal-select-label');
+        const modalSelectSpeed = document.getElementById('modal-select-speed');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumeVal = document.getElementById('volume-val');
+
+        /**
+         * Responsive Canvas Setup
+         */
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        /**
+         * Piano Renderer & Interaction Handling
+         */
+        function getOctaveKeys(range) {
+            let keys = [];
+            if (range === 'C4-C5') {
+                keys = ['C4', 'C4#', 'D4', 'D4#', 'E4', 'F4', 'F4#', 'G4', 'G4#', 'A4', 'A4#', 'B4', 'C5'];
+            } else if (range === 'C3-C4') {
+                keys = ['C3', 'C3#', 'D3', 'D3#', 'E3', 'F3', 'F3#', 'G3', 'G3#', 'A3', 'A3#', 'B3', 'C4'];
+            } else if (range === 'C3-C5') {
+                keys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+            }
+            return keys;
+        }
+
+        function buildPiano() {
+            pianoContainer.innerHTML = '';
+            const keyList = getOctaveKeys(state.currentRange);
+            const whiteKeys = keyList.filter(k => !k.includes('#'));
+
+            let whiteIndex = 0;
+            keyList.forEach((note) => {
+                const isBlack = note.includes('#');
+                const keyEl = document.createElement('div');
+                keyEl.dataset.note = note;
+
+                if (!isBlack) {
+                    keyEl.className = 'white-key flex items-end justify-center pb-2 text-slate-700 font-bold text-xs sm:text-sm select-none';
+                    const pitchName = note.charAt(0);
+                    const label = CONFIG.noteLabels[state.labelMode][pitchName] || '';
+                    const octave = note.slice(-1);
+                    keyEl.innerHTML = `<span>${label}${label ? `<sub class="text-[9px]">${octave}</sub>` : ''}</span>`;
+                    whiteIndex++;
+                } else {
+                    keyEl.className = 'black-key flex items-end justify-center pb-1 text-slate-300 text-[10px] select-none';
+                    const prevWhiteCount = whiteIndex;
+                    const totalWhite = whiteKeys.length;
+                    const keyWidthPercent = 100 / totalWhite;
+                    const leftPos = (prevWhiteCount - 0.35) * keyWidthPercent;
+                    keyEl.style.left = `${leftPos}%`;
+                    keyEl.style.width = `${keyWidthPercent * 0.7}%`;
+                }
+
+                // Event Listeners for Touch & Mouse
+                const handlePress = (e) => {
+                    e.preventDefault();
+                    initAudio();
+                    triggerNoteAttack(note);
+                };
+
+                const handleRelease = (e) => {
+                    e.preventDefault();
+                    triggerNoteRelease(note);
+                };
+
+                keyEl.addEventListener('mousedown', handlePress);
+                keyEl.addEventListener('mouseup', handleRelease);
+                keyEl.addEventListener('mouseleave', handleRelease);
+                keyEl.addEventListener('touchstart', handlePress, { passive: false });
+                keyEl.addEventListener('touchend', handleRelease, { passive: false });
+
+                pianoContainer.appendChild(keyEl);
+            });
+        }
+
+        function triggerNoteAttack(note) {
+            if (state.activeKeys.has(note)) return;
+            state.activeKeys.add(note);
+
+            const el = pianoContainer.querySelector(`[data-note="${note}"]`);
+            if (el) el.classList.add('active');
+
+            if (PITCH_DATA[note]) {
+                playPianoTone(midiToFreq(PITCH_DATA[note].midi));
+            } else if (note.includes('#')) {
+                const baseNote = note.replace('#', '');
+                if (PITCH_DATA[baseNote]) {
+                    playPianoTone(midiToFreq(PITCH_DATA[baseNote].midi + 1));
+                }
+            }
+
+            checkNoteHit(note);
+        }
+
+        function triggerNoteRelease(note) {
+            state.activeKeys.delete(note);
+            const el = pianoContainer.querySelector(`[data-note="${note}"]`);
+            if (el) el.classList.remove('active');
+        }
+
+        /**
+         * Web MIDI API Integration
+         */
+        function setupWebMIDI() {
+            if (navigator.requestMIDIAccess) {
+                navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+            }
+        }
+
+        function onMIDISuccess(midiAccess) {
+            const midiStatus = document.getElementById('midi-status');
+            const inputs = midiAccess.inputs.values();
+
+            let hasDevice = false;
+            for (let input of inputs) {
+                hasDevice = true;
+                input.onmidimessage = handleMIDIMessage;
+            }
+
+            if (hasDevice) {
+                midiStatus.classList.remove('hidden');
+                midiStatus.className = 'flex items-center space-x-1 text-xs bg-emerald-950 px-2.5 py-1 rounded-full text-emerald-400 border border-emerald-800';
+                midiStatus.innerHTML = `<i class="fa-solid fa-plug text-emerald-400"></i><span>MIDI 已連線</span>`;
+            }
+
+            midiAccess.onstatechange = (e) => {
+                if (e.port.type === 'input') {
+                    if (e.port.state === 'connected') {
+                        e.port.onmidimessage = handleMIDIMessage;
+                        midiStatus.classList.remove('hidden');
+                        midiStatus.className = 'flex items-center space-x-1 text-xs bg-emerald-950 px-2.5 py-1 rounded-full text-emerald-400 border border-emerald-800';
+                        midiStatus.innerHTML = `<i class="fa-solid fa-plug text-emerald-400"></i><span>MIDI 已連線</span>`;
+                    } else {
+                        midiStatus.className = 'flex items-center space-x-1 text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 border border-slate-700';
+                        midiStatus.innerHTML = `<i class="fa-plug-circle-xmark text-amber-500"></i><span>MIDI 未連線</span>`;
+                    }
+                }
+            };
+        }
+
+        function onMIDIFailure() {
+            console.log("Web MIDI API access denied or unsupported.");
+        }
+
+        function handleMIDIMessage(event) {
+            const [command, noteNum, velocity] = event.data;
+            const cmd = command >> 4;
+
+            if (cmd === 9 && velocity > 0) {
+                const noteName = midiToNoteName(noteNum);
+                if (noteName) triggerNoteAttack(noteName);
+            } else if (cmd === 8 || (cmd === 9 && velocity === 0)) {
+                const noteName = midiToNoteName(noteNum);
+                if (noteName) triggerNoteRelease(noteName);
+            }
+        }
+
+        function midiToNoteName(midi) {
+            for (let name in PITCH_DATA) {
+                if (PITCH_DATA[name].midi === midi) return name;
+            }
+            return null;
+        }
+
+        /**
+         * Game Logic & Rendering
+         */
+        class Monster {
+            constructor(noteKey, clef) {
+                this.noteKey = noteKey;
+                this.clef = clef; // 'treble' or 'bass'
+                this.width = 72;
+                this.height = 96;
+                this.x = canvas.width + 20;
+                this.y = canvas.height * 0.42;
+                this.speed = (CONFIG.baseSpeed + Math.random() * 0.4) * state.speedMultiplier;
+                this.hp = 1;
+                this.pulse = 0;
+            }
+
+            update() {
+                this.x -= this.speed;
+                this.pulse += 0.05;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // 1. Draw Card Background
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 4;
+                ctx.beginPath();
+                ctx.roundRect(-this.width/2, -this.height/2, this.width, this.height, 10);
+                ctx.fill();
+                ctx.shadowColor = 'transparent';
+
+                // 2. Draw 5 Staff Lines
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1.2;
+                const lineSpacing = 8;
+                const staffCenterY = -10; // Middle Line (3rd Line)
+
+                for (let i = -2; i <= 2; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-this.width/2 + 8, staffCenterY + i * lineSpacing);
+                    ctx.lineTo(this.width/2 - 8, staffCenterY + i * lineSpacing);
+                    ctx.stroke();
+                }
+
+                // 3. Draw Clef Symbol
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '18px serif';
+                ctx.fillText(this.clef === 'treble' ? '🎼' : '𝄢', -this.width/2 + 8, staffCenterY + 8);
+
+                // 4. Draw Note Header & Correct Stem Direction
+                const pitchInfo = PITCH_DATA[this.noteKey];
+                if (pitchInfo) {
+                    // Y position based on staff offset
+                    const noteY = staffCenterY + (pitchInfo.staffOffset * (lineSpacing / 2));
+                    const noteRadiusX = 5.5;
+                    const noteRadiusY = 4;
+
+                    // Draw Ledger Lines (加線)
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 1.2;
+                    if (pitchInfo.staffOffset >= 6) { // Below staff (C4)
+                        for (let line = 6; line <= pitchInfo.staffOffset; line += 2) {
+                            const ly = staffCenterY + (line * (lineSpacing / 2));
+                            ctx.beginPath();
+                            ctx.moveTo(-11, ly);
+                            ctx.lineTo(11, ly);
+                            ctx.stroke();
+                        }
+                    } else if (pitchInfo.staffOffset <= -6) { // Above staff
+                        for (let line = -6; line >= pitchInfo.staffOffset; line -= 2) {
+                            const ly = staffCenterY + (line * (lineSpacing / 2));
+                            ctx.beginPath();
+                            ctx.moveTo(-11, ly);
+                            ctx.lineTo(11, ly);
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Note Head (符頭)
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.ellipse(0, noteY, noteRadiusX, noteRadiusY, -Math.PI / 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Stem Direction Rule (符桿方向樂理規則):
+                    // Middle line (staffOffset <= 0) and above -> Stem Down (朝下，連在符頭左邊)
+                    // Below middle line (staffOffset > 0) -> Stem Up (朝上，連在符頭右邊)
+                    const isStemDown = pitchInfo.staffOffset <= 0;
+                    const stemHeight = 22;
+                    ctx.strokeStyle = '#0f172a';
+                    ctx.lineWidth = 1.6;
+
+                    ctx.beginPath();
+                    if (isStemDown) {
+                        // Attach to LEFT edge of notehead, extend DOWNWARDS
+                        const stemX = -noteRadiusX + 1;
+                        ctx.moveTo(stemX, noteY);
+                        ctx.lineTo(stemX, noteY + stemHeight);
+                    } else {
+                        // Attach to RIGHT edge of notehead, extend UPWARDS
+                        const stemX = noteRadiusX - 1;
+                        ctx.moveTo(stemX, noteY);
+                        ctx.lineTo(stemX, noteY - stemHeight);
+                    }
+                    ctx.stroke();
+                }
+
+                // 5. Draw Monster Body Underneath Card
+                const monsterY = this.height/2 + 14 + Math.sin(this.pulse) * 3;
+                ctx.fillStyle = '#8b5cf6';
+                ctx.beginPath();
+                ctx.arc(0, monsterY, 13, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-4, monsterY - 2, 4, 0, Math.PI * 2);
+                ctx.arc(4, monsterY - 2, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-3, monsterY - 2, 2, 0, Math.PI * 2);
+                ctx.arc(5, monsterY - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Projectile {
+            constructor(startX, startY, targetX, targetY) {
+                this.x = startX;
+                this.y = startY;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.speed = 12;
+                const angle = Math.atan2(targetY - startY, targetX - startX);
+                this.vx = Math.cos(angle) * this.speed;
+                this.vy = Math.sin(angle) * this.speed;
+                this.alive = true;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (Math.hypot(this.targetX - this.x, this.targetY - this.y) < 15) {
+                    this.alive = false;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.fillStyle = '#f59e0b';
+                ctx.shadowColor = '#fbbf24';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6;
+                this.alpha = 1;
+                this.size = Math.random() * 4 + 2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.03;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function spawnMonster() {
+            let availableKeys = getOctaveKeys(state.currentRange).filter(k => !k.includes('#'));
+            
+            let clef = state.clefMode;
+            if (clef === 'mixed') {
+                clef = Math.random() > 0.5 ? 'treble' : 'bass';
+            }
+
+            // Filter keys matching current clef definition if necessary
+            if (clef === 'bass') {
+                availableKeys = availableKeys.filter(k => PITCH_DATA[k] && PITCH_DATA[k].clef === 'bass');
+                if (availableKeys.length === 0) availableKeys = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3'];
+            } else if (clef === 'treble') {
+                availableKeys = availableKeys.filter(k => PITCH_DATA[k] && PITCH_DATA[k].clef === 'treble');
+                if (availableKeys.length === 0) availableKeys = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+            }
+
+            const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
+            state.monsters.push(new Monster(randomKey, clef));
+        }
+
+        function checkNoteHit(playedNote) {
+            if (!state.isPlaying || state.isPaused) return;
+
+            let matchedIndex = -1;
+            let minX = Infinity;
+
+            state.monsters.forEach((m, index) => {
+                if (m.noteKey === playedNote && m.x < minX) {
+                    minX = m.x;
+                    matchedIndex = index;
+                }
+            });
+
+            if (matchedIndex !== -1) {
+                const target = state.monsters[matchedIndex];
+                
+                const knightX = 100;
+                const knightY = canvas.height * 0.42 - 30;
+                state.projectiles.push(new Projectile(knightX, knightY, target.x, target.y));
+
+                createExplosion(target.x, target.y, '#8b5cf6');
+                playSoundEffect('hit');
+
+                state.score += 10 + state.combo * 2;
+                state.combo++;
+                if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+                state.monsters.splice(matchedIndex, 1);
+                updateUI();
+            } else {
+                state.combo = 0;
+                playSoundEffect('miss');
+                updateUI();
+            }
+        }
+
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                state.particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function takeDamage() {
+            state.lives--;
+            state.combo = 0;
+            playSoundEffect('miss');
+            updateUI();
+
+            damageOverlay.style.opacity = '0.5';
+            setTimeout(() => { damageOverlay.style.opacity = '0'; }, 200);
+
+            if (state.lives <= 0) {
+                gameOver();
+            }
+        }
+
+        function updateUI() {
+            scoreText.innerText = state.score;
+            comboText.innerText = state.combo;
+
+            let heartsHTML = '';
+            for (let i = 0; i < CONFIG.maxLives; i++) {
+                if (i < state.lives) {
+                    heartsHTML += '<i class="fa-solid fa-heart"></i>';
+                } else {
+                    heartsHTML += '<i class="fa-regular fa-heart text-slate-600"></i>';
+                }
+            }
+            hpBar.innerHTML = heartsHTML;
+        }
+
+        function renderStage() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const groundY = canvas.height * 0.58;
+
+            // Background
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, groundY);
+
+            // Ground Line
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // Castle
+            const castleX = 30;
+            const castleY = groundY - 110;
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(castleX, castleY + 30, 80, 80);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(castleX + 25, castleY + 60, 30, 50);
+
+            // Roof
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.moveTo(castleX - 10, castleY + 30);
+            ctx.lineTo(castleX + 40, castleY - 10);
+            ctx.lineTo(castleX + 90, castleY + 30);
+            ctx.fill();
+
+            // Knight
+            const knightX = castleX + 40;
+            const knightY = castleY - 25;
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(knightX, knightY, 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(knightX - 8, knightY - 18, 16, 8);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(knightX - 10, knightY - 4, 20, 6);
+
+            ctx.fillStyle = '#3b82f6';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(knightX - 18, knightY + 2, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Render Monsters
+            const castleBoundary = castleX + 90;
+            for (let i = state.monsters.length - 1; i >= 0; i--) {
+                const m = state.monsters[i];
+                m.update();
+                m.draw(ctx);
+
+                if (m.x - m.width/2 <= castleBoundary) {
+                    createExplosion(m.x, m.y, '#ef4444');
+                    state.monsters.splice(i, 1);
+                    takeDamage();
+                }
+            }
+
+            // Render Projectiles
+            for (let i = state.projectiles.length - 1; i >= 0; i--) {
+                const p = state.projectiles[i];
+                p.update();
+                p.draw(ctx);
+                if (!p.alive) state.projectiles.splice(i, 1);
+            }
+
+            // Render Particles
+            for (let i = state.particles.length - 1; i >= 0; i--) {
+                const pt = state.particles[i];
+                pt.update();
+                pt.draw(ctx);
+                if (pt.alpha <= 0) state.particles.splice(i, 1);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (state.isPlaying && !state.isPaused) {
+                if (timestamp - state.lastSpawnTime > state.spawnInterval) {
+                    spawnMonster();
+                    state.lastSpawnTime = timestamp;
+                    state.spawnInterval = Math.max(1000, state.spawnInterval * 0.995);
+                }
+
+                renderStage();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            state.isPlaying = true;
+            state.isPaused = false;
+            state.score = 0;
+            state.combo = 0;
+            state.maxCombo = 0;
+            state.lives = CONFIG.maxLives;
+            state.monsters = [];
+            state.particles = [];
+            state.projectiles = [];
+            state.spawnInterval = CONFIG.spawnInterval;
+            state.lastSpawnTime = performance.now();
+
+            updateUI();
+            modalOverlay.classList.add('hidden');
+        }
+
+        function gameOver() {
+            state.isPlaying = false;
+            modalTitle.innerText = "遊戲結束！";
+            modalDesc.innerText = "城堡防線已被突破，再接再厲提升識譜速度吧！";
+            finalScore.innerText = state.score;
+            finalCombo.innerText = state.maxCombo;
+            modalScoreBoard.classList.remove('hidden');
+            btnStart.innerText = "重新開始";
+            modalOverlay.classList.remove('hidden');
+        }
+
+        /**
+         * Event Handlers & Control Binding
+         */
+        function openSettings() {
+            modalSelectClef.value = state.clefMode;
+            modalSelectRange.value = state.currentRange;
+            modalSelectLabel.value = state.labelMode;
+            volumeSlider.value = masterVolume * 100;
+            volumeVal.innerText = `${Math.round(masterVolume * 100)}%`;
+            
+            settingsModal.classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add('hidden');
+        }
+
+        function saveSettings() {
+            state.clefMode = modalSelectClef.value;
+            state.currentRange = modalSelectRange.value;
+            state.labelMode = modalSelectLabel.value;
+            
+            const speedVal = modalSelectSpeed.value;
+            state.speedMultiplier = speedVal === 'slow' ? 0.7 : (speedVal === 'fast' ? 1.4 : 1.0);
+
+            // Sync with bottom selects
+            selectClef.value = state.clefMode;
+            selectRange.value = state.currentRange;
+            selectLabel.value = state.labelMode;
+
+            // Sync badges
+            const clefLabels = { 'treble': '🎼 高音譜號', 'bass': '𝄢 低音譜號', 'mixed': '🎼𝄢 混合譜號' };
+            clefBadge.innerText = clefLabels[state.clefMode];
+            rangeBadge.innerText = `${state.currentRange} (${state.currentRange === 'C3-C5' ? '雙八度' : '單八度'})`;
+
+            buildPiano();
+            closeSettings();
+        }
+
+        btnSettings.addEventListener('click', () => {
+            initAudio();
+            openSettings();
         });
-      }
 
-      startGame() {
-        this.score = 0;
-        this.lives = 5;
-        this.cards = [];
-        this.effects = [];
-        this.isRunning = true;
-        this.updateHUD();
-        document.getElementById('modal-overlay').classList.add('hidden');
-        requestAnimationFrame(() => this.loop());
-      }
+        btnCloseSettings.addEventListener('click', closeSettings);
+        btnSaveSettings.addEventListener('click', saveSettings);
 
-      togglePause() {
-        this.isRunning = !this.isRunning;
-        if (!this.isRunning) {
-          this.showModal('遊戲暫停');
-        } else {
-          document.getElementById('modal-overlay').classList.add('hidden');
-          requestAnimationFrame(() => this.loop());
-        }
-      }
+        volumeSlider.addEventListener('input', (e) => {
+            const val = e.target.value / 100;
+            volumeVal.innerText = `${e.target.value}%`;
+            setVolume(val);
+        });
 
-      showModal(title) {
-        document.getElementById('modal-title').innerText = title;
-        document.getElementById('modal-overlay').classList.remove('hidden');
-      }
+        btnStart.addEventListener('click', () => {
+            initAudio();
+            startGame();
+        });
 
-      updateHUD() {
-        document.getElementById('score-display').innerText = this.score;
-        document.getElementById('lives-display').innerText = '❤️'.repeat(Math.max(0, this.lives));
-      }
+        btnPause.addEventListener('click', () => {
+            if (!state.isPlaying) return;
+            state.isPaused = !state.isPaused;
+            btnPause.innerHTML = state.isPaused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
+        });
 
-      loop() {
-        if (!this.isRunning) return;
+        selectRange.addEventListener('change', (e) => {
+            state.currentRange = e.target.value;
+            rangeBadge.innerText = `${e.target.value} (${e.target.value === 'C3-C5' ? '雙八度' : '單八度'})`;
+            buildPiano();
+        });
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        selectLabel.addEventListener('change', (e) => {
+            state.labelMode = e.target.value;
+            buildPiano();
+        });
 
-        // Draw Background
-        this.drawBackground();
+        selectClef.addEventListener('change', (e) => {
+            state.clefMode = e.target.value;
+            const labels = { 'treble': '🎼 高音譜號', 'bass': '𝄢 低音譜號', 'mixed': '🎼𝄢 混合譜號' };
+            clefBadge.innerText = labels[e.target.value];
+        });
 
-        // Spawn Cards with dynamic speed
-        this.spawnTimer++;
-        const spawnInterval = Math.max(30, Math.floor(120 / this.settings.speed));
-        if (this.spawnTimer > spawnInterval) {
-          this.spawnCard();
-          this.spawnTimer = 0;
-        }
+        // Computer Keyboard Shortcuts
+        const KEY_MAP = {
+            'a': 'C4', 's': 'D4', 'd': 'E4', 'f': 'F4', 'g': 'G4', 'h': 'A4', 'j': 'B4', 'k': 'C5'
+        };
 
-        // Update & Render Cards
-        for (let i = this.cards.length - 1; i >= 0; i--) {
-          const card = this.cards[i];
-          card.x -= card.speed;
-
-          this.drawCardAndMonster(card);
-
-          if (card.x < 150) {
-            this.lives--;
-            this.updateHUD();
-            this.cards.splice(i, 1);
-
-            if (this.lives <= 0) {
-              this.isRunning = false;
-              this.showModal('遊戲結束！最終得分: ' + this.score);
-              return;
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const note = KEY_MAP[e.key.toLowerCase()];
+            if (note) {
+                initAudio();
+                triggerNoteAttack(note);
             }
-          }
-        }
+        });
 
-        // Particle Effects
-        for (let i = this.effects.length - 1; i >= 0; i--) {
-          const p = this.effects[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          p.life -= 0.03;
-
-          if (p.life <= 0) {
-            this.effects.splice(i, 1);
-          } else {
-            this.ctx.fillStyle = p.color;
-            this.ctx.globalAlpha = p.life;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.globalAlpha = 1.0;
-          }
-        }
-
-        requestAnimationFrame(() => this.loop());
-      }
-
-      drawBackground() {
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-
-        // Sky Gradient
-        const grad = this.ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#0284c7');
-        grad.addColorStop(0.5, '#38bdf8');
-        grad.addColorStop(1, '#7dd3fc');
-        this.ctx.fillStyle = grad;
-        this.ctx.fillRect(0, 0, w, h);
-
-        // Ground Wall
-        this.ctx.fillStyle = '#b45309';
-        this.ctx.fillRect(0, h * 0.72, w, h * 0.28);
-        this.ctx.fillStyle = '#d97706';
-        this.ctx.fillRect(0, h * 0.72, w, 8);
-
-        // Castle Base
-        const castleX = 30;
-        const castleY = h * 0.38;
-        this.ctx.fillStyle = '#94a3b8';
-        this.ctx.fillRect(castleX, castleY + 50, 90, 100);
-
-        // Castle Roof
-        this.ctx.fillStyle = '#2563eb';
-        this.ctx.beginPath();
-        this.ctx.moveTo(castleX - 10, castleY + 50);
-        this.ctx.lineTo(castleX + 45, castleY);
-        this.ctx.lineTo(castleX + 100, castleY + 50);
-        this.ctx.fill();
-
-        // Hero Character
-        this.ctx.fillStyle = '#ec4899';
-        this.ctx.beginPath();
-        this.ctx.arc(castleX + 45, castleY - 20, 16, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.fillStyle = '#fde047';
-        this.ctx.beginPath();
-        this.ctx.arc(castleX + 45, castleY - 26, 18, Math.PI, Math.PI * 2);
-        this.ctx.fill();
-      }
-
-      drawCardAndMonster(card) {
-        const w = 105;
-        const h = 140;
-        const x = card.x - w / 2;
-        const y = card.y - h / 2;
-
-        // Card White Background
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.shadowColor = 'rgba(0,0,0,0.25)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.beginPath();
-        this.ctx.roundRect(x, y, w, h, 10);
-        this.ctx.fill();
-        this.ctx.shadowBlur = 0;
-
-        // Staff Lines (Exactly 5 clean lines)
-        this.ctx.strokeStyle = '#1e293b';
-        this.ctx.lineWidth = 1.5;
-        const staffTop = y + 36;
-        const lineSpacing = 11;
-
-        for (let i = 0; i < 5; i++) {
-          const lineY = staffTop + i * lineSpacing;
-          this.ctx.beginPath();
-          this.ctx.moveTo(x + 8, lineY);
-          this.ctx.lineTo(x + w - 8, lineY);
-          this.ctx.stroke();
-        }
-
-        // Draw Standard SVG Vector Clef Icons
-        if (card.clef === 'treble') {
-          this.drawTrebleClefVector(x + 10, staffTop - 8);
-        } else {
-          this.drawBassClefVector(x + 12, staffTop + 11);
-        }
-
-        // Pitch Index Calculation
-        const pitchIndex = NOTE_PITCH_INDEX[card.note] || 17;
-        const baseIndex = card.clef === 'treble' ? 19 : 7; // E4 vs G2
-        const stepOffset = pitchIndex - baseIndex;
-
-        const noteY = staffTop + 44 - (stepOffset * (lineSpacing / 2));
-        const noteX = x + w / 2 + 14;
-
-        // Short Ledger Line
-        if (stepOffset < 0 || stepOffset > 8) {
-          const ledgerStart = Math.min(0, stepOffset);
-          const ledgerEnd = Math.max(8, stepOffset);
-
-          for (let s = ledgerStart; s <= ledgerEnd; s++) {
-            if ((s < 0 || s > 8) && Math.abs(s % 2) === 0) {
-              const ly = staffTop + 44 - (s * (lineSpacing / 2));
-              this.ctx.beginPath();
-              this.ctx.moveTo(noteX - 10, ly);
-              this.ctx.lineTo(noteX + 10, ly);
-              this.ctx.stroke();
+        window.addEventListener('keyup', (e) => {
+            const note = KEY_MAP[e.key.toLowerCase()];
+            if (note) {
+                triggerNoteRelease(note);
             }
-          }
-        }
+        });
 
-        // Note Head
-        this.ctx.fillStyle = '#0f172a';
-        this.ctx.beginPath();
-        this.ctx.ellipse(noteX, noteY, 5.5, 4, -Math.PI / 12, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Note Stem
-        this.ctx.beginPath();
-        if (stepOffset >= 4) {
-          this.ctx.moveTo(noteX - 4.5, noteY);
-          this.ctx.lineTo(noteX - 4.5, noteY + 22);
-        } else {
-          this.ctx.moveTo(noteX + 4.5, noteY);
-          this.ctx.lineTo(noteX + 4.5, noteY - 22);
-        }
-        this.ctx.stroke();
-
-        // Monster/Boss Icon
-        this.ctx.fillStyle = card.isBoss ? '#7c3aed' : '#ea580c';
-        this.ctx.beginPath();
-        this.ctx.arc(x + w / 2, y + h + 14, card.isBoss ? 18 : 12, 0, Math.PI * 2);
-        this.ctx.fill();
-      }
-
-      // Treble Clef Precise Vector
-      drawTrebleClefVector(cx, cy) {
-        this.ctx.save();
-        this.ctx.translate(cx, cy);
-        this.ctx.scale(0.55, 0.55);
-        this.ctx.lineWidth = 2.8;
-        this.ctx.strokeStyle = '#0f172a';
-        this.ctx.fillStyle = '#0f172a';
-
-        // Bottom Dot
-        this.ctx.beginPath();
-        this.ctx.arc(10, 85, 4, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Spiral Body
-        this.ctx.beginPath();
-        this.ctx.moveTo(10, 85);
-        this.ctx.bezierCurveTo(22, 70, 24, 45, 12, 45);
-        this.ctx.bezierCurveTo(0, 45, 0, 62, 14, 76);
-        this.ctx.bezierCurveTo(26, 88, 30, 60, 12, 20);
-        this.ctx.bezierCurveTo(2, -10, 14, -20, 14, -10);
-        this.ctx.bezierCurveTo(14, 10, 12, 50, 12, 90);
-        this.ctx.stroke();
-
-        this.ctx.restore();
-      }
-
-      // Bass Clef Precise Vector
-      drawBassClefVector(cx, cy) {
-        this.ctx.save();
-        this.ctx.translate(cx, cy);
-        this.ctx.scale(0.8, 0.8);
-        this.ctx.fillStyle = '#0f172a';
-        this.ctx.strokeStyle = '#0f172a';
-        this.ctx.lineWidth = 3;
-
-        // Big Dot on F Line
-        this.ctx.beginPath();
-        this.ctx.arc(4, 4, 4, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Main Arc
-        this.ctx.beginPath();
-        this.ctx.moveTo(4, 4);
-        this.ctx.bezierCurveTo(16, -6, 22, 10, 12, 26);
-        this.ctx.bezierCurveTo(8, 32, 2, 36, -2, 38);
-        this.ctx.stroke();
-
-        // F Line Dots
-        this.ctx.beginPath();
-        this.ctx.arc(22, 0, 2.5, 0, Math.PI * 2);
-        this.ctx.arc(22, 12, 2.5, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        this.ctx.restore();
-      }
-    }
-
-    // Launch Engine
-    window.addEventListener('load', () => {
-      new Game();
-    });
-  </script>
+        // Initialize App
+        buildPiano();
+        setupWebMIDI();
+        requestAnimationFrame(gameLoop);
+    </script>
 </body>
 </html>
